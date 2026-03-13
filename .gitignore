@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+old_models/
+Simplified/
+physioapp.db
