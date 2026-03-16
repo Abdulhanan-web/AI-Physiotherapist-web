@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const EyeIcon = ({ visible }) =>
   visible ? (
@@ -18,7 +18,7 @@ const EyeIcon = ({ visible }) =>
 const PasswordInput = ({ placeholder, value, onChange, style, ...props }) => {
   const [show, setShow] = useState(false);
   return (
-    <div style={{ position: "relative", marginBottom: style?.marginBottom ?? "10px" }}>
+    <div style={{ position: "relative", display: "inline-block", marginBottom: "10px" }}>
       <input
         type={show ? "text" : "password"}
         placeholder={placeholder}
@@ -26,8 +26,9 @@ const PasswordInput = ({ placeholder, value, onChange, style, ...props }) => {
         onChange={onChange}
         {...props}
         style={{
+          display: "block",
           padding: "10px 40px 10px 10px",
-          width: "100%",
+          width: "250px",
           boxSizing: "border-box",
           ...style,
           marginBottom: 0,
@@ -57,14 +58,14 @@ const PasswordInput = ({ placeholder, value, onChange, style, ...props }) => {
   );
 };
 
-const Signup = () => {
-  const [email, setEmail] = useState("");
+function ResetPassword() {
+  const { token } = useParams();
+  const navigate = useNavigate();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const validatePassword = (password) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
@@ -74,88 +75,67 @@ const Signup = () => {
     return null;
   };
 
-  const handleSignup = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setMsg("");
     setError("");
-    setSuccess("");
 
     const passwordError = validatePassword(password);
-    if (passwordError) return setError(passwordError);
-    if (password !== confirmPassword) return setError("Passwords do not match");
+    if (passwordError) { setError(passwordError); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
 
-    setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/register-request", {
+      const res = await fetch("http://localhost:8000/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ token, new_password: password }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to send verification code");
 
-      setSuccess("Verification code sent to your email");
-      setTimeout(() => {
-        navigate(`/verify-registration?email=${encodeURIComponent(email)}`);
-      }, 1500);
+      if (!res.ok) {
+        setError(data.detail || "Password reset failed");
+      } else {
+        setMsg(data.message || "Password reset successful");
+        setTimeout(() => navigate("/login"), 2000);
+      }
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setError("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <form onSubmit={handleSignup} style={{ background: "#333", padding: "40px", borderRadius: "10px", width: "350px", display: "flex", flexDirection: "column" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "10px" }}>Create Account</h2>
+    <div style={{ textAlign: "center", marginTop: "100px" }}>
+      <h2>Reset Password</h2>
 
-        {error && <p style={{ color: "#e74c3c", textAlign: "center" }}>{error}</p>}
-        {success && <p style={{ color: "#2ecc71", textAlign: "center" }}>{success}</p>}
-
-        <input
-          type="email"
-          placeholder="Email Address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ marginBottom: "10px", padding: "10px" }}
-        />
-
+      <form onSubmit={handleSubmit} style={{ display: "inline-block" }}>
         <PasswordInput
-          placeholder="Password"
+          placeholder="New Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ marginBottom: "5px" }}
         />
-
-        <p style={{ fontSize: "12px", color: "#bbb", marginBottom: "10px" }}>
-          Password must contain:
-          <br />• At least 8 characters
-          <br />• Uppercase and lowercase letters
-          <br />• A number
-          <br />• A special character (@$!%*?&)
-        </p>
 
         <PasswordInput
           placeholder="Confirm Password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
-          style={{ marginBottom: "20px" }}
         />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Sending..." : "Sign Up"}
+        <button type="submit" style={{ padding: "10px 20px" }}>
+          Reset Password
         </button>
-
-        <p style={{ marginTop: "20px", textAlign: "center" }}>
-          Already have an account? <Link to="/login">Login here</Link>
-        </p>
       </form>
+
+      {error && <p style={{ color: "red", marginTop: "15px" }}>{error}</p>}
+      {msg && <p style={{ color: "green", marginTop: "15px" }}>{msg}</p>}
+
+      <button onClick={() => navigate("/login")} style={{ marginTop: "20px", padding: "8px 15px" }}>
+        Back to Login
+      </button>
     </div>
   );
-};
+}
 
-export default Signup;
+export default ResetPassword;
