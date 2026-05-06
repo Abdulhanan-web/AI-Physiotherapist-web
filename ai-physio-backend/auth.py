@@ -39,3 +39,12 @@ def verify_reset_token(token: str):
         return email
     except jwt.PyJWTError:
         return None
+
+
+def get_current_user(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        return email
+    except jwt.PyJWTError:
+        return None

@@ -126,6 +126,10 @@ const Login = () => {
               body: JSON.stringify({ token: credentialResponse.credential }),
             });
             const data = await res.json();
+            if (!res.ok) {
+              setError(data.detail || "Google login failed. Please try again.");
+              return;
+            }
             login(data.access_token);
             navigate("/");
           }}

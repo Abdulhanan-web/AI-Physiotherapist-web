@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -15,8 +15,36 @@ const exercises = [
 ];
 
 const Dashboard = () => {
-  const { logout } = useAuth();
+  const { logout, token } = useAuth();
   const navigate = useNavigate();
+  const [totalScore, setTotalScore] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserScore();
+  }, []);
+
+  const fetchUserScore = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/user-score', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTotalScore(data.total_score);
+      } else {
+        console.error('Failed to fetch user score');
+      }
+    } catch (error) {
+      console.error('Error fetching user score:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -32,6 +60,12 @@ const Dashboard = () => {
           Rehabilitation Exercise Control Panel
         </h1>
         <p style={{ color: "#aaa" }}>Select an exercise to begin your session</p>
+        
+        {/* Score Display */}
+        <div style={{ marginTop: "30px", padding: "20px", backgroundColor: "#2c3e50", borderRadius: "10px", display: "inline-block" }}>
+          <p style={{ margin: 0, color: "#bdc3c7", fontSize: "0.9rem", textTransform: "uppercase" }}>TOTAL SCORE</p>
+          <h2 style={{ margin: "10px 0 0 0", color: "#2ecc71", fontSize: "2.5rem", fontWeight: "900" }}>{loading ? "..." : totalScore}</h2>
+        </div>
       </div>
 
       <button onClick={() => { logout(); navigate("/login"); }} style={{ padding: "8px 16px", backgroundColor: "#e74c3c", color: "white", borderRadius: "5px", border: "none", cursor: "pointer" }}>

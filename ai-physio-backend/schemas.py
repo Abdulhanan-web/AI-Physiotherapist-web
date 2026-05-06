@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    total_score: int = 0
 
     class Config:
         from_attributes = True
@@ -40,3 +41,10 @@ class UserVerificationRequest(BaseModel):
 class UserVerificationConfirm(BaseModel):
     email: EmailStr
     code: str
+
+
+class ExerciseScore(BaseModel):
+    exercise_name: str
+    sets: int
+    reps: int
+    avg_accuracy: float

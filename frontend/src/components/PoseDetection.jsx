@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Pose } from "@mediapipe/pose";
 import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks, POSE_CONNECTIONS } from "@mediapipe/drawing_utils";
@@ -45,6 +46,7 @@ const EXERCISE_RULES = {
 };
 
 const PoseDetection = ({ exerciseName }) => {
+  const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const sequenceRef = useRef([]);
@@ -61,12 +63,19 @@ const PoseDetection = ({ exerciseName }) => {
   const [feedback, setFeedback] = useState("Align yourself...");
   const [confidence, setConfidence] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [accuracyValues, setAccuracyValues] = useState([]);
 
   // Refs to manage internal logic without triggering re-renders
   const stageRef = useRef("down");
   const holdStartRef = useRef(null);
   const hasCountedHoldRef = useRef(false);
-  const isRestingRef = useRef(false); 
+  const isRestingRef = useRef(false);
+  const currentSetRef = useRef(1);  // Track current set to avoid stale closure
+
+  // Keep currentSetRef in sync with state
+  useEffect(() => {
+    currentSetRef.current = currentSet;
+  }, [currentSet]); 
 
   // --- REST TIMER ---
   useEffect(() => {
@@ -166,8 +175,11 @@ const PoseDetection = ({ exerciseName }) => {
           })
           .then(res => res.json())
           .then(data => {
+            const accuracyPercent = (data.confidence * 100).toFixed(1);
             setFeedback(data.correct ? "Good Form! ✅" : "Adjust your position ❌");
-            setConfidence((data.confidence * 100).toFixed(1));
+            setConfidence(accuracyPercent);
+            // Store accuracy values for calculating average
+            setAccuracyValues(prev => [...prev, parseFloat(data.confidence)]);
           }).catch(() => {});
         }
       }
@@ -178,7 +190,8 @@ const PoseDetection = ({ exerciseName }) => {
       setReps((prev) => {
         const nextReps = prev + 1;
         if (nextReps >= activeRule.targetReps) {
-          if (currentSet >= activeRule.targetSets) {
+          // Use the ref to get the current set value (avoids stale closure)
+          if (currentSetRef.current >= activeRule.targetSets) {
             setSessionComplete(true);
           } else {
             setIsResting(true);
@@ -199,6 +212,43 @@ const PoseDetection = ({ exerciseName }) => {
     return () => camera.stop();
   }, [exerciseName, currentSet, sessionComplete, activeRule]);
 
+  // Handle score submission when session is complete
+  useEffect(() => {
+    if (sessionComplete && accuracyValues.length > 0) {
+      const avgAccuracy = accuracyValues.reduce((a, b) => a + b, 0) / accuracyValues.length;
+      submitScore(avgAccuracy);
+    }
+  }, [sessionComplete]);
+
+  const submitScore = async (avgAccuracy) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/update-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          exercise_name: exerciseName,
+          sets: activeRule.targetSets,
+          reps: activeRule.targetReps,
+          avg_accuracy: avgAccuracy,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Score submitted:', data);
+    } catch (error) {
+      console.error('Error submitting score:', error);
+    }
+  };
+
   return (
     <div style={{ maxWidth: "800px", margin: "30px auto", fontFamily: "system-ui" }}>
       <div style={{ position: "relative", backgroundColor: "#111", borderRadius: "15px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}>
@@ -218,10 +268,18 @@ const PoseDetection = ({ exerciseName }) => {
             <h1 style={{ fontSize: "3rem", margin: 0 }}>EXCELLENT! 🏆</h1>
             <p style={{ fontSize: "1.2rem", margin: "10px 0 30px 0" }}>Workout Goals Met.</p>
             <button 
-              onClick={() => window.location.href='/'} 
-              style={{ padding: "15px 40px", fontSize: "1rem", border: "none", borderRadius: "50px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}
+              onClick={() => navigate('/')} 
+              style={{ padding: "15px 40px", fontSize: "1rem", border: "none", borderRadius: "50px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 15px rgba(0,0,0,0.2)", backgroundColor: "#fff", color: "#2ecc71", transition: "all 0.3s ease" }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#f0f0f0";
+                e.target.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "#fff";
+                e.target.style.transform = "scale(1)";
+              }}
             >
-              Finish Session
+              Return to Dashboard
             </button>
           </div>
         )}

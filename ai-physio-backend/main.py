@@ -21,8 +21,10 @@ from email_utils import send_reset_email, send_verification_email
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from models import UserVerification
+from auth import get_current_user
 
-load_dotenv()
+basedir = os.path.dirname(__file__)
+load_dotenv(os.path.join(basedir, ".env"))
 
 # Create database tables automatically on startup
 models.Base.metadata.create_all(bind=engine)
@@ -147,17 +149,20 @@ def reset_password(data: schemas.ResetPassword, db: Session = Depends(get_db)):
 def google_login(data: schemas.GoogleToken, db: Session = Depends(get_db)):
 
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google client ID is not configured on the backend.")
 
     try:
         idinfo = id_token.verify_oauth2_token(
             data.token,
             requests.Request(),
-            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=60
         )
         email = idinfo["email"]
 
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Google token")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid Google token: {e}")
 
     user = db.query(models.User).filter(models.User.email == email).first()
 
@@ -219,8 +224,57 @@ async def predict(exercise_name: str, request: SequenceRequest):
 
     return {
         "exercise": exercise_name,
-        "correct": bool(confidence >= 0.5),
+        "correct": bool(confidence >= 0.3),
         "confidence": confidence
+    }
+
+
+@app.post("/update-score")
+async def update_score(score_data: schemas.ExerciseScore, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Calculate and update the user's total score.
+    Formula: ((sets * reps) * 5) + (avg_accuracy * 2) + 50
+    """
+    email = get_current_user(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Calculate exercise score: ((sets * reps) * 5) + (avg_accuracy * 2) + 50
+    exercise_score = int(((score_data.sets * score_data.reps) * 5) + (score_data.avg_accuracy * 2) + 50)
+    
+    # Update user's total score
+    user.total_score += exercise_score
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "exercise": score_data.exercise_name,
+        "exercise_score": exercise_score,
+        "total_score": user.total_score,
+        "message": f"Score updated! You earned {exercise_score} points."
+    }
+
+
+@app.get("/user-score")
+async def get_user_score(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Get the user's current total score
+    """
+    email = get_current_user(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "email": user.email,
+        "total_score": user.total_score
     }
 
 
