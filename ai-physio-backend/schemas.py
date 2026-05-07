@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
 
 class UserCreate(BaseModel):
@@ -48,3 +50,19 @@ class ExerciseScore(BaseModel):
     sets: int
     reps: int
     avg_accuracy: float
+
+
+class ExerciseCompletion(BaseModel):
+    exercise_name: str
+
+
+class ExerciseStreakResponse(BaseModel):
+    exercise_name: str
+    current_streak: int
+    last_completed_at: Optional[datetime] = None
+    is_broken: bool
+    has_warning: bool  # True if 22+ hours since last completion
+    hours_until_break: Optional[float] = None  # Hours remaining before streak breaks
+
+    class Config:
+        from_attributes = True

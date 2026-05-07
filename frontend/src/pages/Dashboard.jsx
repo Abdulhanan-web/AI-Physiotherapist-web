@@ -19,9 +19,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [totalScore, setTotalScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [streaks, setStreaks] = useState({});
 
   useEffect(() => {
     fetchUserScore();
+    fetchStreaks();
   }, []);
 
   const fetchUserScore = async () => {
@@ -44,6 +46,43 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchStreaks = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/streaks', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Create a map of exercise_name -> streak data
+        const streakMap = {};
+        data.forEach(streak => {
+          streakMap[streak.exercise_name] = streak;
+        });
+        setStreaks(streakMap);
+      } else {
+        console.error('Failed to fetch streaks');
+      }
+    } catch (error) {
+      console.error('Error fetching streaks:', error);
+    }
+  };
+
+  const getStreakDisplay = (exerciseName) => {
+    const streak = streaks[exerciseName];
+    if (!streak) {
+      return { count: 0, hasWarning: false, isBroken: false };
+    }
+    return {
+      count: streak.current_streak,
+      hasWarning: streak.has_warning,
+      isBroken: streak.is_broken
+    };
   };
 
   return (
@@ -80,55 +119,96 @@ const Dashboard = () => {
         maxWidth: "1200px",
         margin: "0 auto" // This centers the entire grid
       }}>
-        {exercises.map((ex, index) => (
-          <div
-            key={index}
-            style={{
-              padding: "30px",
-              background: "#ffffff",
-              borderRadius: "16px",
-              boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              transition: "transform 0.2s ease",
-              cursor: "pointer",
-            }}
-            // Simple hover effect logic
-            onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-          >
-            <h3 style={{
-              color: "#2d3436",
-              margin: "0 0 20px 0",
-              fontSize: "1.25rem",
-              fontWeight: "600"
-            }}>
-              {ex}
-            </h3>
-
-            <button
-              onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
+        {exercises.map((ex, index) => {
+          const { count, hasWarning, isBroken } = getStreakDisplay(ex);
+          return (
+            <div
+              key={index}
               style={{
-                backgroundColor: "#2ecc71",
-                color: "white",
-                border: "none",
-                padding: "12px 24px",
-                borderRadius: "8px",
-                fontWeight: "bold",
+                padding: "30px",
+                background: "#ffffff",
+                borderRadius: "16px",
+                boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                transition: "transform 0.2s ease",
                 cursor: "pointer",
-                width: "100%",
-                fontSize: "1rem",
-                transition: "background 0.3s ease"
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = "#27ae60"}
-              onMouseLeave={(e) => e.target.style.backgroundColor = "#2ecc71"}
+              // Simple hover effect logic
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
             >
-              Start Exercise
-            </button>
-          </div>
-        ))}
+              <div style={{ width: "100%" }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "20px"
+                }}>
+                  <h3 style={{
+                    color: "#2d3436",
+                    margin: "0",
+                    fontSize: "1.25rem",
+                    fontWeight: "600"
+                  }}>
+                    {ex}
+                  </h3>
+
+                  {/* Streak Display */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}>
+                    <span style={{
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                      color: isBroken ? "#dc3545" : hasWarning ? "#ff6b00" : "#28a745"
+                    }}>
+                      {count}
+                    </span>
+                    <span style={{
+                      fontSize: "1.3rem",
+                      filter: isBroken ? "grayscale(1) opacity(0.5)" : "none"
+                    }}>
+                      🔥
+                    </span>
+                    {hasWarning && !isBroken && (
+                      <span style={{
+                        fontSize: "1.2rem",
+                        marginLeft: "2px"
+                      }}>
+                        ⏳
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
+                style={{
+                  backgroundColor: "#2ecc71",
+                  color: "white",
+                  border: "none",
+                  padding: "12px 24px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontSize: "1rem",
+                  transition: "background 0.3s ease"
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = "#27ae60"}
+                onMouseLeave={(e) => e.target.style.backgroundColor = "#2ecc71"}
+              >
+                Start Exercise
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

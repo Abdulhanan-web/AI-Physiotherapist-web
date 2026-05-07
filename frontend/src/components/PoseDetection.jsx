@@ -244,6 +244,21 @@ const PoseDetection = ({ exerciseName }) => {
 
       const data = await response.json();
       console.log('Score submitted:', data);
+
+      // Record exercise completion for streak
+      const completionResponse = await fetch('http://localhost:8000/complete-exercise', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          exercise_name: exerciseName,
+        }),
+      });
+
+      const completionData = await completionResponse.json();
+      console.log('Exercise completed:', completionData);
     } catch (error) {
       console.error('Error submitting score:', error);
     }

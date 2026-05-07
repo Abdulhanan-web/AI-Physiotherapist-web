@@ -342,3 +342,139 @@ def verify_registration(data: schemas.UserVerificationConfirm, db: Session = Dep
     db.commit()
 
     return new_user
+
+
+# -------------------- STREAK MANAGEMENT --------------------
+
+@app.post("/complete-exercise")
+async def complete_exercise(
+    completion_data: schemas.ExerciseCompletion,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """
+    Record exercise completion and update streak.
+    Streak logic:
+    - If no previous session: start streak at 1
+    - If last session was < 24 hours ago: increment streak
+    - If last session was >= 24 hours ago: reset streak to 1
+    """
+    email = get_current_user(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Record the exercise session
+    session = models.ExerciseSession(
+        user_id=user.id,
+        exercise_name=completion_data.exercise_name
+    )
+    db.add(session)
+    db.commit()
+
+    # Get or create streak record
+    streak = db.query(models.ExerciseStreak).filter(
+        models.ExerciseStreak.user_id == user.id,
+        models.ExerciseStreak.exercise_name == completion_data.exercise_name
+    ).first()
+
+    now = datetime.utcnow()
+
+    if not streak:
+        # First time doing this exercise
+        streak = models.ExerciseStreak(
+            user_id=user.id,
+            exercise_name=completion_data.exercise_name,
+            current_streak=1,
+            last_completed_at=now,
+            is_broken=False
+        )
+        db.add(streak)
+    else:
+        # Update existing streak
+        if streak.last_completed_at:
+            time_diff = now - streak.last_completed_at
+            hours_since = time_diff.total_seconds() / 3600
+
+            if hours_since >= 24:
+                # Streak broken - reset to 1
+                streak.current_streak = 1
+                streak.is_broken = True
+            else:
+                # Streak continues - increment
+                streak.current_streak += 1
+                streak.is_broken = False
+        else:
+            streak.current_streak = 1
+
+        streak.last_completed_at = now
+
+    db.commit()
+    db.refresh(streak)
+
+    return {
+        "exercise": completion_data.exercise_name,
+        "current_streak": streak.current_streak,
+        "message": f"Great! Your {completion_data.exercise_name} streak is now {streak.current_streak} day(s)!"
+    }
+
+
+@app.get("/streaks")
+async def get_streaks(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all streaks for the current user with warning status.
+    Warning: shows glass hour icon if 22+ hours since last completion
+    Break: streak breaks if 24+ hours since last completion
+    """
+    email = get_current_user(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    streaks = db.query(models.ExerciseStreak).filter(
+        models.ExerciseStreak.user_id == user.id
+    ).all()
+
+    now = datetime.utcnow()
+    streaks_response = []
+
+    for streak in streaks:
+        has_warning = False
+        hours_until_break = None
+        is_currently_broken = False
+
+        if streak.last_completed_at:
+            time_diff = now - streak.last_completed_at
+            hours_since = time_diff.total_seconds() / 3600
+
+            # Check if already broken (24+ hours)
+            if hours_since >= 24:
+                is_currently_broken = True
+                hours_until_break = 0
+            # Check for warning (22+ hours)
+            elif hours_since >= 22:
+                has_warning = True
+                hours_until_break = max(0, 24 - hours_since)
+            else:
+                hours_until_break = max(0, 24 - hours_since)
+
+        streak_response = schemas.ExerciseStreakResponse(
+            exercise_name=streak.exercise_name,
+            current_streak=streak.current_streak if not is_currently_broken else 0,
+            last_completed_at=streak.last_completed_at,
+            is_broken=is_currently_broken,
+            has_warning=has_warning,
+            hours_until_break=hours_until_break
+        )
+        streaks_response.append(streak_response)
+
+    return streaks_response
