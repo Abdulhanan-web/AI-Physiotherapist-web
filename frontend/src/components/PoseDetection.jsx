@@ -7,41 +7,174 @@ import { drawConnectors, drawLandmarks, POSE_CONNECTIONS } from "@mediapipe/draw
 // --- 1. Comprehensive Exercise Configuration ---
 // Customizing Reps, Sets, and Rest for each rehab movement
 const EXERCISE_RULES = {
-  "Elbow Flexion Left": { 
+  "Elbow Flexion Left": {
     joints: [11, 13, 15], range: { min: 40, max: 150 }, type: "min",
-    targetReps: 12, targetSets: 3, restDuration: 30 
+    targetReps: 12, targetSets: 3, restDuration: 30
   },
-  "Elbow Flexion Right": { 
+  "Elbow Flexion Right": {
     joints: [12, 14, 16], range: { min: 40, max: 150 }, type: "min",
-    targetReps: 12, targetSets: 3, restDuration: 30 
+    targetReps: 12, targetSets: 3, restDuration: 30
   },
-  "Shoulder Flexion Left": { 
+  "Shoulder Flexion Left": {
     joints: [23, 11, 13], range: { min: 40, max: 160 }, type: "max",
-    targetReps: 10, targetSets: 3, restDuration: 45 
+    targetReps: 10, targetSets: 3, restDuration: 45
   },
-  "Shoulder Flexion Right": { 
+  "Shoulder Flexion Right": {
     joints: [24, 12, 14], range: { min: 40, max: 160 }, type: "max",
-    targetReps: 10, targetSets: 3, restDuration: 45 
+    targetReps: 10, targetSets: 3, restDuration: 45
   },
-  "Shoulder Abduction Left": { 
-    joints: [23, 11, 13], range: { min: 30, max: 90 }, type: "max", 
-    holdTime: 3000, targetReps: 8, targetSets: 3, restDuration: 60 
+  "Shoulder Abduction Left": {
+    joints: [23, 11, 13], range: { min: 30, max: 90 }, type: "max",
+    holdTime: 3000, targetReps: 8, targetSets: 3, restDuration: 60
   },
-  "Shoulder Abduction Right": { 
-    joints: [24, 12, 14], range: { min: 30, max: 90 }, type: "max", 
-    holdTime: 3000, targetReps: 8, targetSets: 3, restDuration: 60 
+  "Shoulder Abduction Right": {
+    joints: [24, 12, 14], range: { min: 30, max: 90 }, type: "max",
+    holdTime: 3000, targetReps: 8, targetSets: 3, restDuration: 60
   },
-  "Shoulder Forward Elevation": { 
-    joints: [24, 12, 14], range: { min: 40, max: 160 }, type: "max", 
-    holdTime: 2000, targetReps: 10, targetSets: 3, restDuration: 45 
+  "Shoulder Forward Elevation": {
+    joints: [24, 12, 14], range: { min: 40, max: 160 }, type: "max",
+    holdTime: 2000, targetReps: 10, targetSets: 3, restDuration: 45
   },
-  "Side Tap Left": { 
+  "Side Tap Left": {
     joints: [23, 25, 27], range: { min: 140, max: 175 }, type: "min",
-    targetReps: 15, targetSets: 2, restDuration: 20 
+    targetReps: 15, targetSets: 2, restDuration: 20
   },
-  "Side Tap Right": { 
+  "Side Tap Right": {
     joints: [24, 26, 28], range: { min: 140, max: 175 }, type: "min",
-    targetReps: 15, targetSets: 2, restDuration: 20 
+    targetReps: 15, targetSets: 2, restDuration: 20
+  },
+  "Cat-Cow Stretch": {
+    joints: [11, 23, 25],
+    range: { min: 70, max: 140 },
+    type: "max",
+    targetReps: 10,
+    targetSets: 2,
+    restDuration: 30,
+  },
+
+  "Knee to Chest Stretch": {
+    joints: [23, 25, 27],
+    range: { min: 40, max: 100 },
+    type: "min",
+    holdTime: 3000,
+    targetReps: 8,
+    targetSets: 2,
+    restDuration: 30,
+  },
+
+  "Bird Dog": {
+    joints: [11, 23, 25],
+    range: { min: 150, max: 180 },
+    type: "max",
+    holdTime: 4000,
+    targetReps: 10,
+    targetSets: 2,
+    restDuration: 40,
+  },
+
+  "Glute Bridge": {
+    joints: [11, 23, 25],
+    range: { min: 150, max: 180 },
+    type: "max",
+    holdTime: 3000,
+    targetReps: 12,
+    targetSets: 3,
+    restDuration: 40,
+  },
+
+  "Child's Pose Stretch": {
+    joints: [11, 23, 25],
+    range: { min: 50, max: 100 },
+    type: "min",
+    holdTime: 5000,
+    targetReps: 5,
+    targetSets: 2,
+    restDuration: 30,
+  },
+
+  // ================= KNEE RECOVERY =================
+
+  "Quad Sets": {
+    joints: [23, 25, 27],
+    range: { min: 160, max: 180 },
+    type: "max",
+    holdTime: 3000,
+    targetReps: 10,
+    targetSets: 2,
+    restDuration: 20,
+  },
+
+  "Straight Leg Raise": {
+    joints: [23, 25, 27],
+    range: { min: 40, max: 90 },
+    type: "min",
+    targetReps: 10,
+    targetSets: 3,
+    restDuration: 30,
+  },
+
+  "Heel Slides": {
+    joints: [23, 25, 27],
+    range: { min: 50, max: 130 },
+    type: "min",
+    targetReps: 12,
+    targetSets: 2,
+    restDuration: 25,
+  },
+
+  "Seated Knee Extension": {
+    joints: [23, 25, 27],
+    range: { min: 150, max: 180 },
+    type: "max",
+    targetReps: 10,
+    targetSets: 2,
+    restDuration: 25,
+  },
+
+  "Mini Squats": {
+    joints: [23, 25, 27],
+    range: { min: 70, max: 130 },
+    type: "min",
+    targetReps: 15,
+    targetSets: 3,
+    restDuration: 35,
+  },
+
+  "Step-Ups": {
+    joints: [23, 25, 27],
+    range: { min: 80, max: 140 },
+    type: "min",
+    targetReps: 12,
+    targetSets: 3,
+    restDuration: 35,
+  },
+
+  "Hamstring Curls": {
+    joints: [23, 25, 27],
+    range: { min: 40, max: 110 },
+    type: "min",
+    targetReps: 12,
+    targetSets: 2,
+    restDuration: 30,
+  },
+
+  "Lunges": {
+    joints: [23, 25, 27],
+    range: { min: 70, max: 120 },
+    type: "min",
+    targetReps: 10,
+    targetSets: 3,
+    restDuration: 40,
+  },
+
+  "Single Leg Balance": {
+    joints: [23, 25, 27],
+    range: { min: 160, max: 180 },
+    type: "max",
+    holdTime: 5000,
+    targetReps: 5,
+    targetSets: 2,
+    restDuration: 30,
   },
 };
 
@@ -50,7 +183,7 @@ const PoseDetection = ({ exerciseName }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const sequenceRef = useRef([]);
-  
+
   // Find rule or fallback to a default
   const activeRule = EXERCISE_RULES[exerciseName] || EXERCISE_RULES["Elbow Flexion Left"];
 
@@ -75,7 +208,7 @@ const PoseDetection = ({ exerciseName }) => {
   // Keep currentSetRef in sync with state
   useEffect(() => {
     currentSetRef.current = currentSet;
-  }, [currentSet]); 
+  }, [currentSet]);
 
   // --- REST TIMER ---
   useEffect(() => {
@@ -109,7 +242,7 @@ const PoseDetection = ({ exerciseName }) => {
     pose.onResults(async (results) => {
       if (!canvasRef.current) return;
       const canvasCtx = canvasRef.current.getContext("2d");
-      
+
       canvasRef.current.width = results.image.width;
       canvasRef.current.height = results.image.height;
 
@@ -162,9 +295,9 @@ const PoseDetection = ({ exerciseName }) => {
         }
 
         // --- 2. AI Form Inference ---
-        const keypoints = results.poseLandmarks.map(lm => ({...lm, x: 1 - lm.x})).flatMap(j => [j.x, j.y, j.z]).slice(0, 75);
+        const keypoints = results.poseLandmarks.map(lm => ({ ...lm, x: 1 - lm.x })).flatMap(j => [j.x, j.y, j.z]).slice(0, 75);
         sequenceRef.current.push(keypoints);
-        
+
         if (sequenceRef.current.length === 30) {
           const currentSeq = [...sequenceRef.current];
           sequenceRef.current = [];
@@ -173,14 +306,14 @@ const PoseDetection = ({ exerciseName }) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sequence: currentSeq }),
           })
-          .then(res => res.json())
-          .then(data => {
-            const accuracyPercent = (data.confidence * 100).toFixed(1);
-            setFeedback(data.correct ? "Good Form! ✅" : "Adjust your position ❌");
-            setConfidence(accuracyPercent);
-            // Store accuracy values for calculating average
-            setAccuracyValues(prev => [...prev, parseFloat(data.confidence)]);
-          }).catch(() => {});
+            .then(res => res.json())
+            .then(data => {
+              const accuracyPercent = (data.confidence * 100).toFixed(1);
+              setFeedback(data.correct ? "Good Form! ✅" : "Adjust your position ❌");
+              setConfidence(accuracyPercent);
+              // Store accuracy values for calculating average
+              setAccuracyValues(prev => [...prev, parseFloat(data.confidence)]);
+            }).catch(() => { });
         }
       }
       canvasCtx.restore();
@@ -269,7 +402,7 @@ const PoseDetection = ({ exerciseName }) => {
       <div style={{ position: "relative", backgroundColor: "#111", borderRadius: "15px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}>
         <video ref={videoRef} style={{ display: "none" }} />
         <canvas ref={canvasRef} style={{ width: "100%", display: "block", filter: isResting ? "blur(8px) brightness(0.5)" : "none" }} />
-        
+
         {isResting && (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", zIndex: 10 }}>
             <h2 style={{ letterSpacing: "2px", opacity: 0.8 }}>REST TIME</h2>
@@ -282,8 +415,8 @@ const PoseDetection = ({ exerciseName }) => {
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(46, 204, 113, 0.95)", color: "#fff", zIndex: 20 }}>
             <h1 style={{ fontSize: "3rem", margin: 0 }}>EXCELLENT! 🏆</h1>
             <p style={{ fontSize: "1.2rem", margin: "10px 0 30px 0" }}>Workout Goals Met.</p>
-            <button 
-              onClick={() => navigate('/')} 
+            <button
+              onClick={() => navigate('/')}
               style={{ padding: "15px 40px", fontSize: "1rem", border: "none", borderRadius: "50px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 15px rgba(0,0,0,0.2)", backgroundColor: "#fff", color: "#2ecc71", transition: "all 0.3s ease" }}
               onMouseEnter={(e) => {
                 e.target.style.backgroundColor = "#f0f0f0";
@@ -299,15 +432,15 @@ const PoseDetection = ({ exerciseName }) => {
           </div>
         )}
       </div>
-      
+
       {/* UI Dashboard */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "15px", marginTop: "20px" }}>
         <DataBox label="CURRENT SET" value={`${currentSet} / ${activeRule.targetSets}`} />
-        <DataBox 
-          label="REPS DONE" 
-          value={`${reps} / ${activeRule.targetReps}`} 
-          color="#2ecc71" 
-          progress={holdProgress} 
+        <DataBox
+          label="REPS DONE"
+          value={`${reps} / ${activeRule.targetReps}`}
+          color="#2ecc71"
+          progress={holdProgress}
         />
         <DataBox label="AI ANALYSIS" value={feedback} size="14px" />
         <DataBox label="FORM ACCURACY" value={`${confidence}%`} />

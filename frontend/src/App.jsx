@@ -8,59 +8,67 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyRegistration from "./pages/VerifyRegistration";
-
+import SpecialtyProgram from "./pages/SpecialtyProgram";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Replace this with your Google Client ID from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 // Protect routes that require authentication
 const ProtectedRoute = ({ children }) => {
-const { token } = useAuth();
+  const { token } = useAuth();
 
-if (!token) {
-return <Navigate to="/login" replace />;
-}
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
-return children;
+  return children;
 };
 
 function App() {
-return ( <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> <AuthProvider> <BrowserRouter> <Routes>
+  return (<GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> <AuthProvider> <BrowserRouter> <Routes>
 
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/verify-registration" element={<VerifyRegistration />} />
+    {/* Public Routes */}
+    <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password/:token" element={<ResetPassword />} />
+    <Route path="/verify-registration" element={<VerifyRegistration />} />
 
-        {/* Protected Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+    {/* Protected Routes */}
+    <Route
+      path="/"
+      element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      }
+    />
 
-        <Route
-          path="/exercise/:name"
-          element={
-            <ProtectedRoute>
-              <ExercisePage />
-            </ProtectedRoute>
-          }
-        />
+    <Route
+      path="/exercise/:name"
+      element={
+        <ProtectedRoute>
+          <ExercisePage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/specialty/:condition"
+      element={
+        <ProtectedRoute>
+          <SpecialtyProgram />
+        </ProtectedRoute>
+      }
+    />
 
-        {/* Redirect unknown routes */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+    {/* Redirect unknown routes */}
+    <Route path="*" element={<Navigate to="/" replace />} />
 
-      </Routes>
-    </BrowserRouter>
+  </Routes>
+  </BrowserRouter>
   </AuthProvider>
-</GoogleOAuthProvider>
-);
+  </GoogleOAuthProvider>
+  );
 }
 
 export default App;

@@ -190,7 +190,39 @@ def load_ml_models():
         "Elbow Flexion Left", "Elbow Flexion Right",
         "Shoulder Flexion Left", "Shoulder Flexion Right",
         "Shoulder Abduction Left", "Shoulder Abduction Right",
-        "Shoulder Forward Elevation", "Side Tap Left", "Side Tap Right"
+        "Shoulder Forward Elevation", "Side Tap Left", "Side Tap Right",
+        # LOWER BACK PAIN
+    "Cat-Cow Stretch",
+    "Knee to Chest Stretch",
+    "Bird Dog",
+    "Glute Bridge",
+    "Child's Pose Stretch",
+
+    # KNEE RECOVERY
+    "Quad Sets",
+    "Straight Leg Raise",
+    "Heel Slides",
+    "Seated Knee Extension",
+    "Mini Squats",
+    "Step-Ups",
+    "Hamstring Curls",
+    "Lunges",
+    "Single Leg Balance",
+
+    # STROKE RECOVERY
+    "Wrist Extension/Flexion",
+    "Finger Open/Close",
+    "Seated Marching",
+    "Sit-to-Stand",
+    "Weight Shifting",
+
+    # SHOULDER REHAB
+    "Pendulum Exercise",
+    "Wall Climb Exercise",
+    "Shoulder External Rotation",
+    "Shoulder Internal Rotation Stretch",
+    "Scaption",
+    "Resistance Band Rows"
     ]
 
     for name in model_list:

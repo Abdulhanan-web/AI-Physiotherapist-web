@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { specialtyPrograms } from "../data/specialtyPrograms";
 
 const exercises = [
   "Elbow Flexion Left",
@@ -99,7 +100,7 @@ const Dashboard = () => {
           Rehabilitation Exercise Control Panel
         </h1>
         <p style={{ color: "#aaa" }}>Select an exercise to begin your session</p>
-        
+
         {/* Score Display */}
         <div style={{ marginTop: "30px", padding: "20px", backgroundColor: "#2c3e50", borderRadius: "10px", display: "inline-block" }}>
           <p style={{ margin: 0, color: "#bdc3c7", fontSize: "0.9rem", textTransform: "uppercase" }}>TOTAL SCORE</p>
@@ -119,6 +120,105 @@ const Dashboard = () => {
         maxWidth: "1200px",
         margin: "0 auto" // This centers the entire grid
       }}>
+        {/* Specialty Rehabilitation Section */}
+        <div
+          style={{
+            marginTop: "70px",
+            maxWidth: "1200px",
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}
+        >
+          <div style={{ marginBottom: "30px" }}>
+            <h2
+              style={{
+                fontSize: "2rem",
+                fontWeight: "700",
+                color: "#f1c40f",
+                marginBottom: "10px",
+              }}
+            >
+              Specialty Rehabilitation
+            </h2>
+
+            <p style={{ color: "#aaa", fontSize: "1rem" }}>
+              Select your condition to access guided rehabilitation programs.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "25px",
+            }}
+          >
+            {Object.keys(specialtyPrograms).map((condition, index) => (
+              <div
+                key={index}
+                style={{
+                  background: "#2c3e50",
+                  borderRadius: "18px",
+                  padding: "30px",
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+                  transition: "transform 0.2s ease",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-5px)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.transform = "translateY(0)")
+                }
+              >
+                <h3
+                  style={{
+                    marginBottom: "15px",
+                    fontSize: "1.4rem",
+                    color: "#fff",
+                  }}
+                >
+                  {condition}
+                </h3>
+
+                <p
+                  style={{
+                    color: "#bdc3c7",
+                    marginBottom: "25px",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  Personalized rehabilitation exercises and recovery phases.
+                </p>
+
+                <button
+                  onClick={() =>
+                    navigate(`/specialty/${encodeURIComponent(condition)}`)
+                  }
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#3498db",
+                    color: "white",
+                    border: "none",
+                    padding: "14px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "1rem",
+                    transition: "background 0.3s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.target.style.backgroundColor = "#2980b9")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.target.style.backgroundColor = "#3498db")
+                  }
+                >
+                  View Recovery Plan
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
         {exercises.map((ex, index) => {
           const { count, hasWarning, isBroken } = getStreakDisplay(ex);
           return (
