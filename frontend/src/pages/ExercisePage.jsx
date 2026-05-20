@@ -7,14 +7,16 @@ const ExercisePage = () => {
   const decodedName = decodeURIComponent(name);
 
   return (
-    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", color: "white", padding: "20px" }}>
-      <button 
-        onClick={() => window.history.back()} 
-        style={{ marginBottom: "20px", background: "none", border: "1px solid white", color: "white", padding: "5px 15px", borderRadius: "5px", cursor: "pointer" }}
-      >
-        ← Back
-      </button>
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>{decodedName}</h2>
+    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", color: "white", padding: "20px", width: "96vw" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
+        <button 
+          onClick={() => window.history.back()} 
+          style={{ background: "none", border: "1px solid white", color: "white", padding: "5px 15px", borderRadius: "5px", cursor: "pointer" }}
+        >
+          ← Back
+        </button>
+        <h2 style={{ margin: 0, flex: 1, textAlign: "center" }}>{decodedName}</h2>
+      </div>
       <PoseDetection exerciseName={decodedName} />
     </div>
   );

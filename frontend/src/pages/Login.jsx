@@ -95,7 +95,7 @@ const Login = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
+    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", width: "100vw", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <form onSubmit={handleLogin} style={{ background: "#333", padding: "40px", borderRadius: "10px", width: "300px", display: "flex", flexDirection: "column" }}>
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Login</h2>
 

@@ -16,24 +16,36 @@ const SpecialtyProgram = () => {
             <div
                 style={{
                     minHeight: "100vh",
+                    width: "100%",
                     backgroundColor: "#1a1a1a",
                     color: "white",
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     flexDirection: "column",
+                    padding: "20px",
+                    boxSizing: "border-box",
+                    textAlign: "center",
                 }}
             >
-                <h1>Program Not Found</h1>
+                <h1
+                    style={{
+                        fontSize: "clamp(2rem, 5vw, 3rem)",
+                        marginBottom: "20px",
+                    }}
+                >
+                    Program Not Found
+                </h1>
 
                 <button
                     onClick={() => navigate("/")}
                     style={{
-                        marginTop: "20px",
-                        padding: "10px 20px",
+                        padding: "12px 24px",
                         border: "none",
-                        borderRadius: "8px",
+                        borderRadius: "10px",
                         cursor: "pointer",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
                     }}
                 >
                     Back to Dashboard
@@ -46,30 +58,36 @@ const SpecialtyProgram = () => {
         <div
             style={{
                 minHeight: "100vh",
+                width: "99vw",
                 backgroundColor: "#1a1a1a",
                 color: "white",
-                padding: "40px 20px",
+                padding: "30px 0",
                 fontFamily: "'Segoe UI', sans-serif",
+                boxSizing: "border-box",
+                overflowX: "hidden",
             }}
         >
             {/* Header */}
             <div
                 style={{
-                    maxWidth: "1200px",
-                    margin: "0 auto",
-                    marginBottom: "40px",
+                    width: "100%",
+                    padding: "0 clamp(15px, 4vw, 50px)",
+                    marginBottom: "50px",
+                    boxSizing: "border-box",
                 }}
             >
                 <button
                     onClick={() => navigate("/")}
                     style={{
-                        marginBottom: "20px",
-                        background: "none",
+                        marginBottom: "25px",
+                        background: "transparent",
                         border: "1px solid white",
                         color: "white",
-                        padding: "10px 18px",
-                        borderRadius: "8px",
+                        padding: "12px 20px",
+                        borderRadius: "10px",
                         cursor: "pointer",
+                        fontSize: "1rem",
+                        transition: "0.2s ease",
                     }}
                 >
                     ← Back
@@ -77,8 +95,10 @@ const SpecialtyProgram = () => {
 
                 <h1
                     style={{
-                        fontSize: "3rem",
-                        marginBottom: "10px",
+                        fontSize: "clamp(2.2rem, 6vw, 4.5rem)",
+                        marginBottom: "15px",
+                        lineHeight: "1.2",
+                        wordBreak: "break-word",
                     }}
                 >
                     {decodedCondition}
@@ -87,7 +107,9 @@ const SpecialtyProgram = () => {
                 <p
                     style={{
                         color: "#b2bec3",
-                        fontSize: "1.1rem",
+                        fontSize: "clamp(1rem, 2vw, 1.2rem)",
+                        lineHeight: "1.8",
+                        maxWidth: "900px",
                     }}
                 >
                     Personalized rehabilitation exercises
@@ -99,8 +121,9 @@ const SpecialtyProgram = () => {
             {/* Phases */}
             <div
                 style={{
-                    maxWidth: "1200px",
-                    margin: "0 auto",
+                    width: "100%",
+                    padding: "0 clamp(15px, 4vw, 50px)",
+                    boxSizing: "border-box",
                 }}
             >
                 {selectedProgram.phases.map(
@@ -108,20 +131,22 @@ const SpecialtyProgram = () => {
                         <div
                             key={phaseIndex}
                             style={{
-                                marginBottom: "50px",
+                                marginBottom: "60px",
+                                width: "100%",
                             }}
                         >
                             {/* Phase Title */}
                             <div
                                 style={{
-                                    marginBottom: "25px",
+                                    marginBottom: "30px",
                                 }}
                             >
                                 <h2
                                     style={{
                                         color: "#f1c40f",
-                                        fontSize: "2rem",
-                                        marginBottom: "8px",
+                                        fontSize:
+                                            "clamp(1.8rem, 4vw, 2.8rem)",
+                                        marginBottom: "10px",
                                     }}
                                 >
                                     {phaseData.phase}
@@ -129,10 +154,10 @@ const SpecialtyProgram = () => {
 
                                 <div
                                     style={{
-                                        width: "80px",
+                                        width: "90px",
                                         height: "4px",
                                         backgroundColor: "#f1c40f",
-                                        borderRadius: "5px",
+                                        borderRadius: "10px",
                                     }}
                                 />
                             </div>
@@ -142,8 +167,9 @@ const SpecialtyProgram = () => {
                                 style={{
                                     display: "grid",
                                     gridTemplateColumns:
-                                        "repeat(auto-fit, minmax(300px, 1fr))",
-                                    gap: "25px",
+                                        "repeat(auto-fit, minmax(280px, 1fr))",
+                                    gap: "24px",
+                                    width: "100%",
                                 }}
                             >
                                 {phaseData.exercises.map(
@@ -153,57 +179,78 @@ const SpecialtyProgram = () => {
                                             style={{
                                                 background: "#ffffff",
                                                 color: "#2d3436",
-                                                borderRadius: "18px",
-                                                padding: "25px",
+                                                borderRadius: "20px",
+                                                padding: "24px",
                                                 boxShadow:
-                                                    "0 10px 20px rgba(0,0,0,0.2)",
-                                                transition: "transform 0.2s ease",
+                                                    "0 10px 25px rgba(0,0,0,0.25)",
+                                                transition:
+                                                    "transform 0.25s ease",
+                                                width: "100%",
+                                                boxSizing: "border-box",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                justifyContent:
+                                                    "space-between",
+                                                minHeight: "260px",
                                             }}
                                             onMouseEnter={(e) =>
-                                            (e.currentTarget.style.transform =
-                                                "translateY(-5px)")
+                                                (e.currentTarget.style.transform =
+                                                    "translateY(-6px)")
                                             }
                                             onMouseLeave={(e) =>
-                                            (e.currentTarget.style.transform =
-                                                "translateY(0)")
+                                                (e.currentTarget.style.transform =
+                                                    "translateY(0)")
                                             }
                                         >
-                                            <h3
-                                                style={{
-                                                    marginBottom: "15px",
-                                                    fontSize: "1.4rem",
-                                                }}
-                                            >
-                                                {exercise.name}
-                                            </h3>
+                                            <div>
+                                                <h3
+                                                    style={{
+                                                        marginBottom: "15px",
+                                                        fontSize:
+                                                            "clamp(1.2rem, 2vw, 1.5rem)",
+                                                        lineHeight: "1.4",
+                                                        wordBreak:
+                                                            "break-word",
+                                                    }}
+                                                >
+                                                    {exercise.name}
+                                                </h3>
 
-                                            <p
-                                                style={{
-                                                    color: "#636e72",
-                                                    lineHeight: "1.6",
-                                                    minHeight: "70px",
-                                                }}
-                                            >
-                                                {exercise.description}
-                                            </p>
+                                                <p
+                                                    style={{
+                                                        color: "#636e72",
+                                                        lineHeight: "1.7",
+                                                        fontSize: "0.96rem",
+                                                    }}
+                                                >
+                                                    {
+                                                        exercise.description
+                                                    }
+                                                </p>
+                                            </div>
 
                                             <button
                                                 onClick={() =>
                                                     navigate(
-                                                        `/exercise/${encodeURIComponent(exercise.name)}`
+                                                        `/exercise/${encodeURIComponent(
+                                                            exercise.name
+                                                        )}`
                                                     )
                                                 }
                                                 style={{
                                                     width: "100%",
-                                                    marginTop: "20px",
-                                                    backgroundColor: "#2ecc71",
+                                                    marginTop: "25px",
+                                                    backgroundColor:
+                                                        "#2ecc71",
                                                     color: "white",
                                                     border: "none",
                                                     padding: "14px",
-                                                    borderRadius: "10px",
+                                                    borderRadius: "12px",
                                                     cursor: "pointer",
                                                     fontWeight: "bold",
                                                     fontSize: "1rem",
+                                                    transition:
+                                                        "0.2s ease",
                                                 }}
                                             >
                                                 Start Exercise

@@ -91,7 +91,7 @@ const Dashboard = () => {
       minHeight: "100vh",
       backgroundColor: "#1a1a1a", // Matching your dark theme
       color: "white",
-      padding: "40px 20px",
+      padding: "40px 60px",
       fontFamily: "'Segoe UI', Roboto, sans-serif"
     }}>
       {/* Header Section */}
@@ -117,10 +117,101 @@ const Dashboard = () => {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
         gap: "25px",
-        maxWidth: "1200px",
-        margin: "0 auto" // This centers the entire grid
+        maxWidth: "100vw",
+        margin: "40px auto" // This centers the entire grid
       }}>
-        {/* Specialty Rehabilitation Section */}
+        {exercises.map((ex, index) => {
+          const { count, hasWarning, isBroken } = getStreakDisplay(ex);
+          return (
+            <div
+              key={index}
+              style={{
+                padding: "30px",
+                background: "#ffffff",
+                borderRadius: "16px",
+                boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                transition: "transform 0.2s ease",
+                cursor: "pointer",
+              }}
+              // Simple hover effect logic
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+            >
+              <div style={{ width: "100%" }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "20px"
+                }}>
+                  <h3 style={{
+                    color: "#2d3436",
+                    margin: "0",
+                    fontSize: "1.25rem",
+                    fontWeight: "600"
+                  }}>
+                    {ex}
+                  </h3>
+
+                  {/* Streak Display */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}>
+                    <span style={{
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                      color: isBroken ? "#dc3545" : hasWarning ? "#ff6b00" : "#28a745"
+                    }}>
+                      {count}
+                    </span>
+                    <span style={{
+                      fontSize: "1.3rem",
+                      filter: isBroken ? "grayscale(1) opacity(0.5)" : "none"
+                    }}>
+                      🔥
+                    </span>
+                    {hasWarning && !isBroken && (
+                      <span style={{
+                        fontSize: "1.2rem",
+                        marginLeft: "2px"
+                      }}>
+                        ⏳
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
+                style={{
+                  backgroundColor: "#2ecc71",
+                  color: "white",
+                  border: "none",
+                  padding: "12px 24px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontSize: "1rem",
+                  transition: "background 0.3s ease"
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = "#27ae60"}
+                onMouseLeave={(e) => e.target.style.backgroundColor = "#2ecc71"}
+              >
+                Start Exercise
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {/* Specialty Rehabilitation Section */}
         <div
           style={{
             marginTop: "70px",
@@ -219,97 +310,6 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
-        {exercises.map((ex, index) => {
-          const { count, hasWarning, isBroken } = getStreakDisplay(ex);
-          return (
-            <div
-              key={index}
-              style={{
-                padding: "30px",
-                background: "#ffffff",
-                borderRadius: "16px",
-                boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                transition: "transform 0.2s ease",
-                cursor: "pointer",
-              }}
-              // Simple hover effect logic
-              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
-              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-            >
-              <div style={{ width: "100%" }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "20px"
-                }}>
-                  <h3 style={{
-                    color: "#2d3436",
-                    margin: "0",
-                    fontSize: "1.25rem",
-                    fontWeight: "600"
-                  }}>
-                    {ex}
-                  </h3>
-
-                  {/* Streak Display */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}>
-                    <span style={{
-                      fontSize: "1.5rem",
-                      fontWeight: "bold",
-                      color: isBroken ? "#dc3545" : hasWarning ? "#ff6b00" : "#28a745"
-                    }}>
-                      {count}
-                    </span>
-                    <span style={{
-                      fontSize: "1.3rem",
-                      filter: isBroken ? "grayscale(1) opacity(0.5)" : "none"
-                    }}>
-                      🔥
-                    </span>
-                    {hasWarning && !isBroken && (
-                      <span style={{
-                        fontSize: "1.2rem",
-                        marginLeft: "2px"
-                      }}>
-                        ⏳
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
-                style={{
-                  backgroundColor: "#2ecc71",
-                  color: "white",
-                  border: "none",
-                  padding: "12px 24px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  width: "100%",
-                  fontSize: "1rem",
-                  transition: "background 0.3s ease"
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = "#27ae60"}
-                onMouseLeave={(e) => e.target.style.backgroundColor = "#2ecc71"}
-              >
-                Start Exercise
-              </button>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };

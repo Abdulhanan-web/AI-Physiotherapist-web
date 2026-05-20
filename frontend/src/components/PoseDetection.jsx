@@ -398,10 +398,10 @@ const PoseDetection = ({ exerciseName }) => {
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "30px auto", fontFamily: "system-ui" }}>
+    <div style={{ maxWidth: "70vw", margin: "30px auto", fontFamily: "system-ui" }}>
       <div style={{ position: "relative", backgroundColor: "#111", borderRadius: "15px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}>
         <video ref={videoRef} style={{ display: "none" }} />
-        <canvas ref={canvasRef} style={{ width: "100%", display: "block", filter: isResting ? "blur(8px) brightness(0.5)" : "none" }} />
+        <canvas ref={canvasRef} style={{ width: "100%", height: "550px", display: "block", filter: isResting ? "blur(8px) brightness(0.5)" : "none" }} />
 
         {isResting && (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", zIndex: 10 }}>
