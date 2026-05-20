@@ -510,3 +510,71 @@ async def get_streaks(
         streaks_response.append(streak_response)
 
     return streaks_response
+
+
+@app.post("/profile", response_model=schemas.UserProfileResponse)
+def create_profile(
+    profile: schemas.UserProfileCreate,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    existing_profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    if existing_profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Profile already exists"
+        )
+
+    new_profile = models.UserProfile(
+        user_id=user.id,
+        full_name=profile.full_name,
+        age=profile.age,
+        gender=profile.gender,
+        height=profile.height,
+        weight=profile.weight,
+        injury_type=profile.injury_type,
+        fitness_goal=profile.fitness_goal,
+        activity_level=profile.activity_level,
+        medical_history=profile.medical_history
+    )
+
+    db.add(new_profile)
+    db.commit()
+    db.refresh(new_profile)
+
+    return new_profile
+
+
+@app.get("/profile")
+def get_profile(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    if not profile:
+        return {"profile_completed": False}
+
+    return {
+        "profile_completed": True,
+        "profile": profile
+    }

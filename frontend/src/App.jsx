@@ -10,6 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyRegistration from "./pages/VerifyRegistration";
 import SpecialtyProgram from "./pages/SpecialtyProgram";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProfileSetup from "./pages/ProfileSetup";
 
 // Replace this with your Google Client ID from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -57,6 +58,15 @@ function App() {
       element={
         <ProtectedRoute>
           <SpecialtyProgram />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/profile-setup"
+      element={
+        <ProtectedRoute>
+          <ProfileSetup />
         </ProtectedRoute>
       }
     />

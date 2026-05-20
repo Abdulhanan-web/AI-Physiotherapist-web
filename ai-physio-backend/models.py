@@ -39,3 +39,25 @@ class ExerciseStreak(Base):
     current_streak = Column(Integer, default=0)
     last_completed_at = Column(DateTime(timezone=True), nullable=True)
     is_broken = Column(Boolean, default=False)
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+
+    full_name = Column(String)
+    age = Column(Integer)
+    gender = Column(String)
+
+    height = Column(Integer)
+    weight = Column(Integer)
+
+    injury_type = Column(String)
+    fitness_goal = Column(String)
+
+    activity_level = Column(String)
+
+    medical_history = Column(String, nullable=True)

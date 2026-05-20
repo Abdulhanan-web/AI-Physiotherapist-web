@@ -66,3 +66,23 @@ class ExerciseStreakResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserProfileCreate(BaseModel):
+    full_name: str
+    age: int
+    gender: str
+    height: int
+    weight: int
+    injury_type: str
+    fitness_goal: str
+    activity_level: str
+    medical_history: Optional[str] = None
+
+
+class UserProfileResponse(UserProfileCreate):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
