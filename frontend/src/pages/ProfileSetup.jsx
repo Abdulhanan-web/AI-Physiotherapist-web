@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -41,21 +41,64 @@ const medicalHistoryOptions = [
   "Osteoporosis",
 ];
 
+const emptyForm = {
+  full_name: "",
+  age: "",
+  gender: "",
+  height: "",
+  weight: "",
+  injury_type: "",
+  fitness_goal: "",
+  activity_level: "",
+  medical_history: "",
+};
+
 const ProfileSetup = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
 
-  const [formData, setFormData] = useState({
-    full_name: "",
-    age: "",
-    gender: "",
-    height: "",
-    weight: "",
-    injury_type: "",
-    fitness_goal: "",
-    activity_level: "",
-    medical_history: "",
-  });
+  const [formData, setFormData] = useState(emptyForm);
+  const [isExisting, setIsExisting] = useState(false); // true = update mode
+  const [pageLoading, setPageLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // On mount: check if profile exists and pre-fill form
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/profile", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.profile_completed && data.profile) {
+            const p = data.profile;
+            setFormData({
+              full_name:      p.full_name      || "",
+              age:            p.age            || "",
+              gender:         p.gender         || "",
+              height:         p.height         || "",
+              weight:         p.weight         || "",
+              injury_type:    p.injury_type    || "",
+              fitness_goal:   p.fitness_goal   || "",
+              activity_level: p.activity_level || "",
+              medical_history: p.medical_history || "",
+            });
+            setIsExisting(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [token]);
 
   const inputStyle = {
     padding: "14px",
@@ -68,18 +111,18 @@ const ProfileSetup = () => {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
     try {
+      const method = isExisting ? "PUT" : "POST";
+
       const response = await fetch("http://localhost:8000/profile", {
-        method: "POST",
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -88,17 +131,37 @@ const ProfileSetup = () => {
       });
 
       if (response.ok) {
-        alert("Profile completed successfully!");
+        alert(isExisting ? "Profile updated successfully!" : "Profile completed successfully!");
         navigate("/");
       } else {
         const errorData = await response.json();
         alert(errorData.detail || "Failed to save profile");
       }
-
     } catch (error) {
       console.error(error);
+      alert("An error occurred. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "#1a1a1a",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "1.2rem",
+          color: "#aaa",
+        }}
+      >
+        Loading profile...
+      </div>
+    );
+  }
 
   return (
     <div
@@ -122,24 +185,45 @@ const ProfileSetup = () => {
           boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
         }}
       >
+        {/* Back button */}
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#aaa",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            marginBottom: "20px",
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
+        >
+          ← Back to Dashboard
+        </button>
+
         <h1
           style={{
             textAlign: "center",
-            marginBottom: "30px",
-            color: "#2ecc71",
+            marginBottom: "8px",
+            color: isExisting ? "#27ae60" : "#2ecc71",
           }}
         >
-          Complete Your Health Profile
+          {isExisting ? "Update Your Health Profile" : "Complete Your Health Profile"}
         </h1>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "grid",
-            gap: "18px",
-          }}
-        >
-          {/* Full Name */}
+        <p style={{ textAlign: "center", color: "#888", marginBottom: "30px", fontSize: "0.9rem" }}>
+          {isExisting
+            ? "Make changes to your profile information below."
+            : "Fill in your details to get a personalized rehabilitation plan."}
+        </p>
+
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "18px" }}>
+
           <input
             type="text"
             name="full_name"
@@ -150,7 +234,6 @@ const ProfileSetup = () => {
             required
           />
 
-          {/* Age */}
           <input
             type="number"
             name="age"
@@ -161,7 +244,6 @@ const ProfileSetup = () => {
             required
           />
 
-          {/* Gender */}
           <select
             name="gender"
             value={formData.gender}
@@ -174,7 +256,6 @@ const ProfileSetup = () => {
             <option value="Female">Female</option>
           </select>
 
-          {/* Height */}
           <input
             type="number"
             name="height"
@@ -185,7 +266,6 @@ const ProfileSetup = () => {
             required
           />
 
-          {/* Weight */}
           <input
             type="number"
             name="weight"
@@ -196,7 +276,6 @@ const ProfileSetup = () => {
             required
           />
 
-          {/* Injury Type */}
           <select
             name="injury_type"
             value={formData.injury_type}
@@ -205,15 +284,11 @@ const ProfileSetup = () => {
             required
           >
             <option value="">Select Injury Type</option>
-
             {injuryOptions.map((injury, index) => (
-              <option key={index} value={injury}>
-                {injury}
-              </option>
+              <option key={index} value={injury}>{injury}</option>
             ))}
           </select>
 
-          {/* Fitness Goal */}
           <select
             name="fitness_goal"
             value={formData.fitness_goal}
@@ -222,15 +297,11 @@ const ProfileSetup = () => {
             required
           >
             <option value="">Select Fitness Goal</option>
-
             {fitnessGoals.map((goal, index) => (
-              <option key={index} value={goal}>
-                {goal}
-              </option>
+              <option key={index} value={goal}>{goal}</option>
             ))}
           </select>
 
-          {/* Activity Level */}
           <select
             name="activity_level"
             value={formData.activity_level}
@@ -239,15 +310,11 @@ const ProfileSetup = () => {
             required
           >
             <option value="">Select Activity Level</option>
-
             {activityLevels.map((level, index) => (
-              <option key={index} value={level}>
-                {level}
-              </option>
+              <option key={index} value={level}>{level}</option>
             ))}
           </select>
 
-          {/* Medical History */}
           <select
             name="medical_history"
             value={formData.medical_history}
@@ -255,37 +322,39 @@ const ProfileSetup = () => {
             style={inputStyle}
           >
             <option value="">Select Medical History</option>
-
             {medicalHistoryOptions.map((history, index) => (
-              <option key={index} value={history}>
-                {history}
-              </option>
+              <option key={index} value={history}>{history}</option>
             ))}
           </select>
 
-          {/* Submit Button */}
           <button
             type="submit"
+            disabled={submitting}
             style={{
               padding: "15px",
-              backgroundColor: "#2ecc71",
+              backgroundColor: isExisting ? "#27ae60" : "#2ecc71",
               color: "white",
               border: "none",
               borderRadius: "10px",
               fontSize: "1rem",
               fontWeight: "bold",
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
               marginTop: "10px",
               transition: "0.3s ease",
+              opacity: submitting ? 0.7 : 1,
             }}
-            onMouseEnter={(e) =>
-              (e.target.style.backgroundColor = "#27ae60")
-            }
-            onMouseLeave={(e) =>
-              (e.target.style.backgroundColor = "#2ecc71")
-            }
+            onMouseEnter={(e) => {
+              if (!submitting) e.target.style.backgroundColor = isExisting ? "#219150" : "#27ae60";
+            }}
+            onMouseLeave={(e) => {
+              if (!submitting) e.target.style.backgroundColor = isExisting ? "#27ae60" : "#2ecc71";
+            }}
           >
-            Save Profile
+            {submitting
+              ? "Saving..."
+              : isExisting
+              ? "Update Profile"
+              : "Save Profile"}
           </button>
         </form>
       </div>

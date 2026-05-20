@@ -11,6 +11,14 @@ import os
 import random
 from datetime import datetime, timedelta
 import re
+from fastapi.responses import FileResponse
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus.tables import Table
+from reportlab.platypus.tables import TableStyle
+from reportlab.lib import colors
+from reportlab.platypus import Image
+import matplotlib.pyplot as plt
 
 # Import your new database and auth files
 import models
@@ -578,3 +586,207 @@ def get_profile(
         "profile_completed": True,
         "profile": profile
     }
+
+
+@app.put("/profile", response_model=schemas.UserProfileResponse)
+def update_profile(
+    profile: schemas.UserProfileCreate,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    existing_profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    if not existing_profile:
+        raise HTTPException(
+            status_code=404,
+            detail="Profile not found. Please create a profile first."
+        )
+
+    existing_profile.full_name     = profile.full_name
+    existing_profile.age           = profile.age
+    existing_profile.gender        = profile.gender
+    existing_profile.height        = profile.height
+    existing_profile.weight        = profile.weight
+    existing_profile.injury_type   = profile.injury_type
+    existing_profile.fitness_goal  = profile.fitness_goal
+    existing_profile.activity_level = profile.activity_level
+    existing_profile.medical_history = profile.medical_history
+
+    db.commit()
+    db.refresh(existing_profile)
+
+    return existing_profile
+
+
+@app.get("/generate-report")
+def generate_report(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    sessions = db.query(models.ExerciseSession).filter(
+        models.ExerciseSession.user_id == user.id
+    ).all()
+
+    streaks = db.query(models.ExerciseStreak).filter(
+        models.ExerciseStreak.user_id == user.id
+    ).all()
+
+    if not profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Complete profile first"
+        )
+
+    # ---------------- CREATE CHART ----------------
+
+    exercise_counts = {}
+
+    for session in sessions:
+        exercise_counts[session.exercise_name] = (
+            exercise_counts.get(session.exercise_name, 0) + 1
+        )
+
+    chart_path = f"reports/chart_{user.id}.png"
+
+    plt.figure(figsize=(8, 4))
+
+    plt.bar(
+        list(exercise_counts.keys()),
+        list(exercise_counts.values())
+    )
+
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    plt.savefig(chart_path)
+
+    plt.close()
+
+    # ---------------- CREATE PDF ----------------
+
+    report_path = f"reports/health_report_{user.id}.pdf"
+
+    doc = SimpleDocTemplate(report_path)
+
+    styles = getSampleStyleSheet()
+
+    elements = []
+
+    # TITLE
+    elements.append(
+        Paragraph(
+            "AI Physiotherapy Health Report",
+            styles['Title']
+        )
+    )
+
+    elements.append(Spacer(1, 20))
+
+    # USER INFO
+    user_data = [
+        ["Full Name", profile.full_name],
+        ["Age", str(profile.age)],
+        ["Gender", profile.gender],
+        ["Injury Type", profile.injury_type],
+        ["Fitness Goal", profile.fitness_goal],
+        ["Activity Level", profile.activity_level],
+        ["Total Score", str(user.total_score)]
+    ]
+
+    table = Table(user_data, colWidths=[200, 300])
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+
+        ('GRID', (0,0), (-1,-1), 1, colors.black),
+
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+    ]))
+
+    elements.append(table)
+
+    elements.append(Spacer(1, 30))
+
+    # EXERCISE SUMMARY
+    elements.append(
+        Paragraph(
+            f"Total Exercise Sessions: {len(sessions)}",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(Spacer(1, 20))
+
+    # STREAKS
+    for streak in streaks:
+        elements.append(
+            Paragraph(
+                f"{streak.exercise_name}: {streak.current_streak} day streak",
+                styles['BodyText']
+            )
+        )
+
+    elements.append(Spacer(1, 30))
+
+    # ADD CHART
+    elements.append(Image(chart_path, width=450, height=250))
+
+    elements.append(Spacer(1, 30))
+
+    # AI RECOMMENDATION
+    recommendation = ""
+
+    if user.total_score < 500:
+        recommendation = (
+            "Increase rehabilitation consistency."
+        )
+    else:
+        recommendation = (
+            "Excellent rehabilitation progress."
+        )
+
+    elements.append(
+        Paragraph(
+            f"AI Recommendation: {recommendation}",
+            styles['Heading2']
+        )
+    )
+
+    # BUILD PDF
+    doc.build(elements)
+
+    # SAVE REPORT RECORD
+    report = models.HealthReport(
+        user_id=user.id,
+        report_path=report_path
+    )
+
+    db.add(report)
+    db.commit()
+
+    return FileResponse(
+        report_path,
+        media_type='application/pdf',
+        filename='health_report.pdf'
+    )

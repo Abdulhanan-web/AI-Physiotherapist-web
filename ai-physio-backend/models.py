@@ -61,3 +61,14 @@ class UserProfile(Base):
     activity_level = Column(String)
 
     medical_history = Column(String, nullable=True)
+
+class HealthReport(Base):
+    __tablename__ = "health_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    report_path = Column(String)
+
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())
