@@ -25,9 +25,21 @@ class ExerciseSession(Base):
     __tablename__ = "exercise_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
+
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
+
     exercise_name = Column(String, index=True)
+
     completed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # NEW FIELDS
+    duration_minutes = Column(Integer, default=0)
+
+    calories_burned = Column(Integer, default=0)
+
+    avg_accuracy = Column(Integer, default=0)
+
+    fitness_level = Column(String, default="Beginner")
 
 
 class ExerciseStreak(Base):

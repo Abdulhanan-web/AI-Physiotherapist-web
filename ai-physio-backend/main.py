@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
+from collections import defaultdict
 from pydantic import BaseModel
 import numpy as np
 from typing import List
@@ -388,7 +389,7 @@ def verify_registration(data: schemas.UserVerificationConfirm, db: Session = Dep
 
 @app.post("/complete-exercise")
 async def complete_exercise(
-    completion_data: schemas.ExerciseCompletion,
+    completion_data: schemas.ExerciseSessionCreate,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
@@ -409,8 +410,12 @@ async def complete_exercise(
 
     # Record the exercise session
     session = models.ExerciseSession(
-        user_id=user.id,
-        exercise_name=completion_data.exercise_name
+    user_id=user.id,
+    exercise_name=completion_data.exercise_name,
+    duration_minutes=completion_data.duration_minutes,
+    calories_burned=completion_data.calories_burned,
+    avg_accuracy=completion_data.avg_accuracy,
+    fitness_level=completion_data.fitness_level
     )
     db.add(session)
     db.commit()
@@ -626,29 +631,70 @@ def update_profile(
     return existing_profile
 
 
-@app.get("/generate-report")
+def group_sessions(sessions, report_type):
+
+    grouped = defaultdict(list)
+
+    for session in sessions:
+
+        # WEEKLY REPORT
+        # Group by exact date
+        if report_type == "weekly":
+
+            key = session.completed_at.strftime("%Y-%m-%d")
+
+        # MONTHLY REPORT
+        # Group by every 5 days
+        else:
+
+            days_ago = (
+                datetime.utcnow() - session.completed_at
+            ).days
+
+            block = days_ago // 5
+
+            start = block * 5
+            end = start + 4
+
+            key = f"{start}-{end} Days Ago"
+
+        grouped[key].append(session)
+
+    return grouped
+
+
+@app.get("/generate-report/{report_type}")
 def generate_report(
+    report_type: str,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
 
+    # ---------------- AUTH ----------------
+
     email = get_current_user(token)
+
+    if not email:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+        )
 
     user = db.query(models.User).filter(
         models.User.email == email
     ).first()
 
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # ---------------- PROFILE ----------------
+
     profile = db.query(models.UserProfile).filter(
         models.UserProfile.user_id == user.id
     ).first()
-
-    sessions = db.query(models.ExerciseSession).filter(
-        models.ExerciseSession.user_id == user.id
-    ).all()
-
-    streaks = db.query(models.ExerciseStreak).filter(
-        models.ExerciseStreak.user_id == user.id
-    ).all()
 
     if not profile:
         raise HTTPException(
@@ -656,25 +702,163 @@ def generate_report(
             detail="Complete profile first"
         )
 
-    # ---------------- CREATE CHART ----------------
+    # ---------------- DATE RANGE ----------------
 
-    exercise_counts = {}
+    now = datetime.utcnow()
 
-    for session in sessions:
-        exercise_counts[session.exercise_name] = (
-            exercise_counts.get(session.exercise_name, 0) + 1
+    if report_type == "weekly":
+        start_date = now - timedelta(days=7)
+
+    elif report_type == "monthly":
+        start_date = now - timedelta(days=30)
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid report type"
         )
+
+    # ---------------- FETCH SESSIONS ----------------
+
+    sessions = db.query(models.ExerciseSession).filter(
+        models.ExerciseSession.user_id == user.id,
+        models.ExerciseSession.completed_at >= start_date
+    ).all()
+
+    if not sessions:
+        raise HTTPException(
+            status_code=400,
+            detail="No exercise data found for this report period"
+        )
+
+    # ---------------- GROUP SESSIONS ----------------
+
+    grouped_sessions = group_sessions(
+        sessions,
+        report_type
+    )
+
+    # ---------------- ANALYTICS DATA ----------------
+
+    report_data = []
+
+    for period, items in grouped_sessions.items():
+
+        exercise_names = [
+            session.exercise_name
+            for session in items
+        ]
+
+        total_time = sum(
+            session.duration_minutes
+            for session in items
+        )
+
+        total_calories = sum(
+            session.calories_burned
+            for session in items
+        )
+
+        avg_accuracy = round(
+            sum(
+                session.avg_accuracy
+                for session in items
+            ) / len(items),
+            2
+        )
+
+        fitness_level = items[-1].fitness_level
+
+        total_exercises = len(items)
+
+        report_data.append({
+            "period": period,
+            "exercises": ", ".join(exercise_names),
+            "exercise_count": total_exercises,
+            "time_spent": total_time,
+            "calories": total_calories,
+            "avg_accuracy": avg_accuracy,
+            "fitness_level": fitness_level
+        })
+
+    # ---------------- GET STREAKS ----------------
+
+    streaks = db.query(models.ExerciseStreak).filter(
+        models.ExerciseStreak.user_id == user.id
+    ).all()
+
+    # ---------------- CREATE REPORTS FOLDER ----------------
+
+    if not os.path.exists("reports"):
+        os.makedirs("reports")
+
+    # ---------------- CREATE CHART ----------------
 
     chart_path = f"reports/chart_{user.id}.png"
 
-    plt.figure(figsize=(8, 4))
+    labels = [
+        item["period"]
+        for item in report_data
+    ]
 
-    plt.bar(
-        list(exercise_counts.keys()),
-        list(exercise_counts.values())
+    exercise_counts = [
+        item["exercise_count"]
+        for item in report_data
+    ]
+
+    avg_accuracy_data = [
+        item["avg_accuracy"]
+        for item in report_data
+    ]
+
+    calories_data = [
+        item["calories"]
+        for item in report_data
+    ]
+
+    plt.figure(figsize=(11, 5))
+
+    # Exercise activity line
+    plt.plot(
+        labels,
+        exercise_counts,
+        marker='o',
+        linewidth=3,
+        label="Exercises Performed"
     )
 
-    plt.xticks(rotation=45)
+    # Accuracy line
+    plt.plot(
+        labels,
+        avg_accuracy_data,
+        marker='s',
+        linewidth=3,
+        label="Average Accuracy"
+    )
+
+    # Calories burned bars
+    plt.bar(
+        labels,
+        calories_data,
+        alpha=0.3,
+        label="Calories Burned"
+    )
+
+    plt.title(
+        f"{report_type.capitalize()} Rehabilitation Analytics",
+        fontsize=16,
+        fontweight='bold'
+    )
+
+    plt.xlabel("Period")
+    plt.ylabel("Performance Metrics")
+
+    plt.xticks(rotation=25)
+
+    plt.legend()
+
+    plt.grid(True, linestyle='--', alpha=0.5)
+
     plt.tight_layout()
 
     plt.savefig(chart_path)
@@ -691,7 +875,8 @@ def generate_report(
 
     elements = []
 
-    # TITLE
+    # ---------------- TITLE ----------------
+
     elements.append(
         Paragraph(
             "AI Physiotherapy Health Report",
@@ -701,8 +886,10 @@ def generate_report(
 
     elements.append(Spacer(1, 20))
 
-    # USER INFO
+    # ---------------- USER INFO TABLE ----------------
+
     user_data = [
+        ["Field", "Value"],
         ["Full Name", profile.full_name],
         ["Age", str(profile.age)],
         ["Gender", profile.gender],
@@ -715,20 +902,25 @@ def generate_report(
     table = Table(user_data, colWidths=[200, 300])
 
     table.setStyle(TableStyle([
+
         ('BACKGROUND', (0,0), (-1,0), colors.grey),
+
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
 
         ('GRID', (0,0), (-1,-1), 1, colors.black),
 
         ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+
         ('BOTTOMPADDING', (0,0), (-1,0), 12),
+
     ]))
 
     elements.append(table)
 
     elements.append(Spacer(1, 30))
 
-    # EXERCISE SUMMARY
+    # ---------------- SESSION COUNT ----------------
+
     elements.append(
         Paragraph(
             f"Total Exercise Sessions: {len(sessions)}",
@@ -738,8 +930,92 @@ def generate_report(
 
     elements.append(Spacer(1, 20))
 
-    # STREAKS
+    # ---------------- ANALYTICS TABLE ----------------
+
+    elements.append(
+        Paragraph(
+            f"{report_type.capitalize()} Rehabilitation Analytics",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(Spacer(1, 15))
+
+    analytics_data = [[
+        "Period",
+        "Exercises",
+        "Time",
+        "Calories",
+        "Accuracy",
+        "Fitness"
+    ]]
+
+    for item in report_data:
+
+        analytics_data.append([
+
+            item["period"],
+
+            item["exercises"],
+
+            str(item["time_spent"]),
+
+            str(item["calories"]),
+
+            f"{item['avg_accuracy']}%",
+
+            item["fitness_level"]
+
+        ])
+
+    analytics_table = Table(
+        analytics_data,
+        colWidths=[90, 180, 70, 70, 80, 90]
+    )
+
+    analytics_table.setStyle(TableStyle([
+
+        ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
+
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+
+        ('FONTSIZE', (0,0), (-1,0), 10),
+
+        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+
+        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+
+        ('FONTSIZE', (0,1), (-1,-1), 9),
+
+        ('GRID', (0,0), (-1,-1), 1, colors.black),
+
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+
+        ('ALIGN', (2,1), (4,-1), 'CENTER'),
+
+    ]))
+
+    elements.append(analytics_table)
+
+    elements.append(Spacer(1, 30))
+
+    # ---------------- STREAKS ----------------
+
+    elements.append(
+        Paragraph(
+            "Exercise Streaks",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(Spacer(1, 10))
+
     for streak in streaks:
+
         elements.append(
             Paragraph(
                 f"{streak.exercise_name}: {streak.current_streak} day streak",
@@ -749,22 +1025,20 @@ def generate_report(
 
     elements.append(Spacer(1, 30))
 
-    # ADD CHART
-    elements.append(Image(chart_path, width=450, height=250))
+    # ---------------- ADD CHART ----------------
+
+    elements.append(
+        Image(chart_path, width=450, height=250)
+    )
 
     elements.append(Spacer(1, 30))
 
-    # AI RECOMMENDATION
-    recommendation = ""
+    # ---------------- AI RECOMMENDATION ----------------
 
     if user.total_score < 500:
-        recommendation = (
-            "Increase rehabilitation consistency."
-        )
+        recommendation = "Increase rehabilitation consistency."
     else:
-        recommendation = (
-            "Excellent rehabilitation progress."
-        )
+        recommendation = "Excellent rehabilitation progress."
 
     elements.append(
         Paragraph(
@@ -773,10 +1047,12 @@ def generate_report(
         )
     )
 
-    # BUILD PDF
+    # ---------------- BUILD PDF ----------------
+
     doc.build(elements)
 
-    # SAVE REPORT RECORD
+    # ---------------- SAVE REPORT ----------------
+
     report = models.HealthReport(
         user_id=user.id,
         report_path=report_path
@@ -784,6 +1060,8 @@ def generate_report(
 
     db.add(report)
     db.commit()
+
+    # ---------------- RETURN PDF ----------------
 
     return FileResponse(
         report_path,

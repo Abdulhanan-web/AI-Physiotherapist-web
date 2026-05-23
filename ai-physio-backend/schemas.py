@@ -86,3 +86,11 @@ class UserProfileResponse(UserProfileCreate):
 
     class Config:
         from_attributes = True
+
+
+class ExerciseSessionCreate(BaseModel):
+    exercise_name: str
+    duration_minutes: int
+    calories_burned: int
+    avg_accuracy: float
+    fitness_level: str

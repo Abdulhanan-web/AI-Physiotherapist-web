@@ -23,7 +23,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [streaks, setStreaks] = useState({});
   const [reportLoading, setReportLoading] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState({
+    sidebar: false,
+    reportDropdown: false,
+  });
   const [profileCompleted, setProfileCompleted] = useState(null); // null = loading
   const menuRef = useRef(null);
 
@@ -37,10 +40,13 @@ const Dashboard = () => {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
+        setMenuOpen({
+          sidebar: false,
+          reportDropdown: false,
+        });
       }
     };
-    if (menuOpen) {
+    if (menuOpen.sidebar) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -98,14 +104,22 @@ const Dashboard = () => {
     }
   };
 
-  const generateReport = async () => {
+  const generateReport = async (type) => {
     try {
       setReportLoading(true);
-      setMenuOpen(false);
-      const response = await fetch("http://localhost:8000/generate-report", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+      setMenuOpen({
+        sidebar: false,
+        reportDropdown: false,
       });
+      const response = await fetch(
+        `http://localhost:8000/generate-report/${type}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         alert(errorData.detail || "Failed to generate report");
@@ -115,7 +129,7 @@ const Dashboard = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "health_report.pdf";
+      a.download = `${type}_health_report.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -150,14 +164,17 @@ const Dashboard = () => {
     >
       {/* ── Overlay ── */}
       <div
-        onClick={() => setMenuOpen(false)}
+        onClick={() => setMenuOpen({
+          sidebar: false,
+          reportDropdown: false,
+        })}
         style={{
           position: "fixed",
           inset: 0,
           backgroundColor: "rgba(0,0,0,0.55)",
           zIndex: 998,
-          opacity: menuOpen ? 1 : 0,
-          pointerEvents: menuOpen ? "all" : "none",
+          opacity: menuOpen.sidebar ? 1 : 0,
+          pointerEvents: menuOpen.sidebar ? "all" : "none",
           transition: "opacity 0.3s ease",
         }}
       />
@@ -173,7 +190,9 @@ const Dashboard = () => {
           width: "300px",
           backgroundColor: "#111827",
           zIndex: 999,
-          transform: menuOpen ? "translateX(0)" : "translateX(-100%)",
+          transform: menuOpen.sidebar
+            ? "translateX(0)"
+            : "translateX(-100%)",
           transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
           display: "flex",
           flexDirection: "column",
@@ -212,7 +231,10 @@ const Dashboard = () => {
           </div>
           {/* Close button */}
           <button
-            onClick={() => setMenuOpen(false)}
+            onClick={() => setMenuOpen({
+              sidebar: false,
+              reportDropdown: false,
+            })}
             style={{
               background: "none",
               border: "none",
@@ -258,15 +280,127 @@ const Dashboard = () => {
 
         {/* Menu Actions */}
         <nav style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-          {/* Generate Report */}
-          <MenuButton
-            icon="📄"
-            label={reportLoading ? "Generating…" : "Generate Health Report"}
-            onClick={generateReport}
-            disabled={reportLoading}
-            color="#9b59b6"
-            hoverColor="#8e44ad"
-          />
+          {/* Generate Report Dropdown */}
+          <div style={{ position: "relative", width: "100%" }}>
+            {/* Main Button */}
+            <button
+              onClick={() =>
+                setMenuOpen((prev) => ({
+                  ...prev,
+                  reportDropdown: !prev.reportDropdown,
+                }))
+              }
+              disabled={reportLoading}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "13px 16px",
+                borderRadius: "10px",
+                border: "none",
+                backgroundColor: "#9b59b6",
+                color: "white",
+                cursor: reportLoading ? "not-allowed" : "pointer",
+                fontSize: "0.95rem",
+                fontWeight: "600",
+                transition: "all 0.25s ease",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#8e44ad")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#9b59b6")
+              }
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <span style={{ fontSize: "1.1rem" }}>📄</span>
+
+                <span>
+                  {reportLoading
+                    ? "Generating..."
+                    : "Generate Health Report"}
+                </span>
+              </div>
+
+              <span style={{ fontSize: "0.9rem" }}>
+                ▼
+              </span>
+            </button>
+
+            {/* Dropdown */}
+            {menuOpen.reportDropdown && (
+              <div
+                style={{
+                  marginTop: "8px",
+                  backgroundColor: "#1f2937",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  border: "1px solid #374151",
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.35)",
+                  animation: "fadeIn 0.25s ease",
+                }}
+              >
+                {/* Weekly Report */}
+                <button
+                  onClick={() => generateReport("weekly")}
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#f9fafb",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "0.92rem",
+                    fontWeight: "500",
+                    transition: "background 0.2s ease",
+                    borderBottom: "1px solid #374151",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#374151")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                >
+                  📅 Generate Weekly Report
+                </button>
+
+                {/* Monthly Report */}
+                <button
+                  onClick={() => generateReport("monthly")}
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#f9fafb",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "0.92rem",
+                    fontWeight: "500",
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#374151")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                >
+                  🗓️ Generate Monthly Report
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Profile button — changes based on completion status */}
           {profileCompleted === false && (
@@ -274,7 +408,10 @@ const Dashboard = () => {
               icon="👤"
               label="Complete User Profile"
               onClick={() => {
-                setMenuOpen(false);
+                setMenuOpen({
+                  sidebar: false,
+                  reportDropdown: false,
+                });
                 navigate("/profile");
               }}
               color="#3498db"
@@ -286,7 +423,10 @@ const Dashboard = () => {
               icon="✏️"
               label="Update Profile Info"
               onClick={() => {
-                setMenuOpen(false);
+                setMenuOpen({
+                  sidebar: false,
+                  reportDropdown: false,
+                });
                 navigate("/profile");
               }}
               color="#27ae60"
@@ -302,7 +442,10 @@ const Dashboard = () => {
             icon="🚪"
             label="Log Out"
             onClick={() => {
-              setMenuOpen(false);
+              setMenuOpen({
+                sidebar: false,
+                reportDropdown: false,
+              });
               logout();
               navigate("/login");
             }}
@@ -314,7 +457,10 @@ const Dashboard = () => {
 
       {/* ── Hamburger Button ── */}
       <button
-        onClick={() => setMenuOpen(true)}
+        onClick={() => setMenuOpen((prev) => ({
+          ...prev,
+          sidebar: true,
+        }))}
         aria-label="Open menu"
         style={{
           position: "fixed",
