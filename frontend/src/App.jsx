@@ -11,6 +11,8 @@ import VerifyRegistration from "./pages/VerifyRegistration";
 import SpecialtyProgram from "./pages/SpecialtyProgram";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProfileSetup from "./pages/ProfileSetup";
+import ReportViewer from "./pages/ReportViewer";
+import HealthReport from "./pages/HealthReport";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -66,7 +68,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            {/* <Route
+              path="/report-viewer"
+              element={
+                <ProtectedRoute>
+                  <ReportViewer />
+                </ProtectedRoute>
+              }
+            /> */}
+            <Route
+              path="/report/:type"
+              element={
+                <ProtectedRoute>
+                  <HealthReport />
+                </ProtectedRoute>
+              }
+            />
             {/* Redirect unknown routes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

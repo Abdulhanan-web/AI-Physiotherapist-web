@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
 from collections import defaultdict
@@ -39,6 +40,8 @@ load_dotenv(os.path.join(basedir, ".env"))
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 
 app.add_middleware(
     CORSMiddleware,
@@ -663,6 +666,186 @@ def group_sessions(sessions, report_type):
     return grouped
 
 
+@app.get("/generate-report-data/{report_type}")
+def generate_report_data(
+    report_type: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    # ---------------- AUTH ----------------
+
+    email = get_current_user(token)
+
+    if not email:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+        )
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # ---------------- PROFILE ----------------
+
+    profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    if not profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Complete profile first"
+        )
+
+    # ---------------- DATE RANGE ----------------
+
+    now = datetime.utcnow()
+
+    if report_type == "weekly":
+        start_date = now - timedelta(days=7)
+
+    elif report_type == "monthly":
+        start_date = now - timedelta(days=30)
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid report type"
+        )
+
+    # ---------------- FETCH SESSIONS ----------------
+
+    sessions = db.query(models.ExerciseSession).filter(
+        models.ExerciseSession.user_id == user.id,
+        models.ExerciseSession.completed_at >= start_date
+    ).all()
+
+    if not sessions:
+        raise HTTPException(
+            status_code=400,
+            detail="No exercise data found"
+        )
+
+    # ---------------- GROUP DATA ----------------
+
+    grouped_sessions = group_sessions(
+        sessions,
+        report_type
+    )
+
+    report_data = []
+
+    for period, items in grouped_sessions.items():
+
+        total_time = sum(
+            session.duration_minutes
+            for session in items
+        )
+
+        total_calories = sum(
+            session.calories_burned
+            for session in items
+        )
+
+        avg_accuracy = round(
+            sum(
+                session.avg_accuracy
+                for session in items
+            ) / len(items),
+            2
+        )
+
+        report_data.append({
+
+            "period": period,
+
+            "exercise_count": len(items),
+
+            "time_spent": total_time,
+
+            "calories": total_calories,
+
+            "avg_accuracy": avg_accuracy
+        })
+
+    # ---------------- STREAKS ----------------
+
+    streaks = db.query(models.ExerciseStreak).filter(
+        models.ExerciseStreak.user_id == user.id
+    ).all()
+
+    # ---------------- AI RECOMMENDATION ----------------
+
+    if user.total_score < 500:
+        recommendation = "Increase rehabilitation consistency."
+    else:
+        recommendation = "Excellent rehabilitation progress."
+
+    # ---------------- RETURN JSON ----------------
+
+    return {
+
+        "user": {
+
+            "name": profile.full_name,
+
+            "age": profile.age,
+
+            "injury_type": profile.injury_type,
+
+            "fitness_goal": profile.fitness_goal,
+
+            "activity_level": profile.activity_level,
+
+            "total_score": user.total_score
+        },
+
+        "summary": {
+
+            "total_sessions": len(sessions),
+
+            "total_calories": sum(
+                s.calories_burned for s in sessions
+            ),
+
+            "total_minutes": sum(
+                s.duration_minutes for s in sessions
+            ),
+
+            "average_accuracy": round(
+                sum(s.avg_accuracy for s in sessions)
+                / len(sessions),
+                2
+            )
+        },
+
+        "report_data": report_data,
+
+        "streaks": [
+
+            {
+                "exercise": s.exercise_name,
+                "days": s.current_streak
+            }
+
+            for s in streaks
+        ],
+
+        "recommendation": recommendation
+    }
+
+
+
+
+
 @app.get("/generate-report/{report_type}")
 def generate_report(
     report_type: str,
@@ -794,7 +977,11 @@ def generate_report(
 
     # ---------------- CREATE CHART ----------------
 
-    chart_path = f"reports/chart_{user.id}.png"
+    chart_filename = f"chart_{user.id}.png"
+
+    chart_path = os.path.abspath(
+        os.path.join("reports", chart_filename)
+    )
 
     labels = [
         item["period"]
@@ -867,7 +1054,11 @@ def generate_report(
 
     # ---------------- CREATE PDF ----------------
 
-    report_path = f"reports/health_report_{user.id}.pdf"
+    report_filename = f"health_report_{user.id}.pdf"
+
+    report_path = os.path.abspath(
+        os.path.join("reports", report_filename)
+    )
 
     doc = SimpleDocTemplate(report_path)
 
@@ -1051,6 +1242,13 @@ def generate_report(
 
     doc.build(elements)
 
+
+    if not os.path.exists(report_path):
+        raise HTTPException(
+            status_code=500,
+            detail="PDF generation failed"
+        )
+    
     # ---------------- SAVE REPORT ----------------
 
     report = models.HealthReport(
@@ -1064,7 +1262,7 @@ def generate_report(
     # ---------------- RETURN PDF ----------------
 
     return FileResponse(
-        report_path,
-        media_type='application/pdf',
-        filename='health_report.pdf'
+        path=report_path,
+        media_type="application/pdf",
+        filename=report_filename
     )

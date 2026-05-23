@@ -6,3 +6,5 @@ old_models/
 Simplified/
 physioapp.db
 reports/
+seed_data/
+ReportViewer.jsx

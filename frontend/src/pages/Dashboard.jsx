@@ -104,42 +104,16 @@ const Dashboard = () => {
     }
   };
 
-  const generateReport = async (type) => {
-    try {
-      setReportLoading(true);
-      setMenuOpen({
-        sidebar: false,
-        reportDropdown: false,
-      });
-      const response = await fetch(
-        `http://localhost:8000/generate-report/${type}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(errorData.detail || "Failed to generate report");
-        return;
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${type}_health_report.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error generating report:", error);
-      alert("Error generating report");
-    } finally {
-      setReportLoading(false);
-    }
+  const generateReport = (type) => {
+
+    // Close sidebar/dropdown
+    setMenuOpen({
+      sidebar: false,
+      reportDropdown: false,
+    });
+
+    // Navigate to report page
+    navigate(`/report/${type}`);
   };
 
   const getStreakDisplay = (exerciseName) => {
