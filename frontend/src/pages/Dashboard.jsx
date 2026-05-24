@@ -407,6 +407,19 @@ const Dashboard = () => {
               hoverColor="#219150"
             />
           )}
+          <MenuButton
+            icon="🥗"
+            label="Nutrition Plan"
+            onClick={() => {
+              setMenuOpen({
+                sidebar: false,
+                reportDropdown: false,
+              });
+              navigate("/nutrition");
+            }}
+            color="#e67e22"
+            hoverColor="#d35400"
+          />
         </nav>
 
         {/* Logout — pinned to bottom */}

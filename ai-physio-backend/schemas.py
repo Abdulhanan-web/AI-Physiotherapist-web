@@ -94,3 +94,9 @@ class ExerciseSessionCreate(BaseModel):
     calories_burned: int
     avg_accuracy: float
     fitness_level: str
+
+
+class MealPlanResponse(BaseModel):
+    calories: int
+    diet_type: str
+    meals: list

@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProfileSetup from "./pages/ProfileSetup";
 import ReportViewer from "./pages/ReportViewer";
 import HealthReport from "./pages/HealthReport";
+import NutritionPlan from "./pages/NutritionPlan";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -81,6 +82,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <HealthReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/nutrition"
+              element={
+                <ProtectedRoute>
+                  <NutritionPlan />
                 </ProtectedRoute>
               }
             />

@@ -32,9 +32,12 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from models import UserVerification
 from auth import get_current_user
+import requests as http_requests
 
 basedir = os.path.dirname(__file__)
 load_dotenv(os.path.join(basedir, ".env"))
+
+SPOONACULAR_API_KEY = os.getenv("SPOONACULAR_API_KEY")
 
 # Create database tables automatically on startup
 models.Base.metadata.create_all(bind=engine)
@@ -666,6 +669,104 @@ def group_sessions(sessions, report_type):
     return grouped
 
 
+def calculate_daily_calories(profile):
+
+    # Mifflin-St Jeor Formula
+
+    if profile.gender.lower() == "male":
+        bmr = (
+            10 * profile.weight
+            + 6.25 * profile.height
+            - 5 * profile.age
+            + 5
+        )
+    else:
+        bmr = (
+            10 * profile.weight
+            + 6.25 * profile.height
+            - 5 * profile.age
+            - 161
+        )
+
+    activity_map = {
+        "low": 1.2,
+        "medium": 1.55,
+        "high": 1.75
+    }
+
+    multiplier = activity_map.get(
+        profile.activity_level.lower(),
+        1.2
+    )
+
+    calories = int(bmr * multiplier)
+
+    # Goal adjustment
+
+    if profile.fitness_goal.lower() == "weight loss":
+        calories -= 300
+
+    elif profile.fitness_goal.lower() == "muscle gain":
+        calories += 300
+
+    return calories
+
+
+def map_rehab_diet(profile):
+    injury = profile.injury_type.lower()
+    goal = profile.fitness_goal.lower()
+
+    # ---------------- Neurological conditions ----------------
+    if "stroke" in injury or "paralysis" in injury:
+        return "high protein recommendation"
+
+    # ---------------- Joint / bone recovery ----------------
+    if "knee" in injury or "back" in injury or "shoulder" in injury:
+        return "high protein recommendation"
+
+    # ---------------- Lower back pain ----------------
+    if "lower back pain" in injury:
+        return "anti-inflammatory recommendation"
+
+    # ---------------- Goal-based logic ----------------
+    if "weight loss" in goal:
+        return "low calorie recommendation"
+
+    if "muscle gain" in goal:
+        return "high protein recommendation"
+
+    # ---------------- Default ----------------
+    return "balanced recommendation"
+
+
+def convert_to_api_diet(diet_type: str):
+    diet_type = diet_type.lower()
+
+    valid_diets = [
+        "vegetarian",
+        "vegan",
+        "gluten free",
+        "ketogenic",
+        "paleo"
+    ]
+
+    # Map your AI output → Spoonacular supported values
+    if "vegetarian" in diet_type:
+        return "vegetarian"
+
+    if "vegan" in diet_type:
+        return "vegan"
+
+    if "gluten" in diet_type:
+        return "gluten free"
+
+    if "protein" in diet_type:
+        return "ketogenic"   # closest match
+
+    return None
+
+
+
 @app.get("/generate-report-data/{report_type}")
 def generate_report_data(
     report_type: str,
@@ -1266,3 +1367,81 @@ def generate_report(
         media_type="application/pdf",
         filename=report_filename
     )
+
+
+@app.get("/nutrition-plan")
+def generate_nutrition_plan(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    # ---------------- AUTH ----------------
+
+    email = get_current_user(token)
+
+    if not email:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+        )
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # ---------------- PROFILE ----------------
+
+    profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+
+    if not profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please complete profile first"
+        )
+
+    # ---------------- CALORIES ----------------
+
+    calories = calculate_daily_calories(profile)
+
+    # ---------------- DIET TYPE ----------------
+
+    raw_diet = map_rehab_diet(profile)
+    api_diet = convert_to_api_diet(raw_diet)
+
+    # ---------------- API REQUEST ----------------
+
+    url = "https://api.spoonacular.com/mealplanner/generate"
+
+    params = {
+        "apiKey": SPOONACULAR_API_KEY,
+        "timeFrame": "day",
+        "targetCalories": calories
+    }
+
+    if api_diet:
+        params["diet"] = api_diet
+
+    response = http_requests.get(url, params=params)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Meal API failed")
+
+    data = response.json()
+
+    # ---------------- RESPONSE ----------------
+
+    return {
+        "calories": calories,
+        "diet_type": raw_diet,
+        "api_diet_used": api_diet,
+        "meals": data.get("meals", []),
+        "nutrients": data.get("nutrients", {})
+    }
