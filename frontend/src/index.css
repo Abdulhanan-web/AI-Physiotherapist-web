@@ -976,3 +976,13 @@ button {
    GOOGLE AUTH BUTTON WRAPPER
    ============================================================ */
 .google-btn-wrap { display: flex; justify-content: center; }
+
+.specialty-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.specialty-card__content {
+  flex: 1;
+}

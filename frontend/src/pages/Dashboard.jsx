@@ -54,33 +54,44 @@ const Dashboard = () => {
       if (response.ok) {
         const data = await response.json();
         const map = {};
-        data.forEach((s) => { map[s.exercise_name] = s; });
+        data.forEach((s) => {
+          map[s.exercise_name] = s;
+        });
         setStreaks(map);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const getStreakDisplay = (name) => {
     const s = streaks[name];
     if (!s) return { count: 0, hasWarning: false, isBroken: false };
-    return { count: s.current_streak, hasWarning: s.has_warning, isBroken: s.is_broken };
+    return {
+      count: s.current_streak,
+      hasWarning: s.has_warning,
+      isBroken: s.is_broken,
+    };
   };
 
   return (
     <div className="page">
       <AppSidebar activePage="dashboard" />
 
-      {/* Main Content */}
       <div className="page--app" style={{ paddingTop: "72px" }}>
         {/* Header */}
         <header className="dashboard-header">
           <h1 className="page-title">Rehabilitation Control Panel</h1>
-          <p className="page-subtitle" style={{ marginTop: 8 }}>Select an exercise to begin your session</p>
+          <p className="page-subtitle" style={{ marginTop: 8 }}>
+            Select an exercise to begin your session
+          </p>
 
           <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
             <div className="stat-card">
               <div className="stat-card__label">Total Score</div>
-              <div className="stat-card__value">{loading ? "…" : totalScore}</div>
+              <div className="stat-card__value">
+                {loading ? "…" : totalScore}
+              </div>
             </div>
           </div>
         </header>
@@ -90,24 +101,50 @@ const Dashboard = () => {
           <div className="grid--auto">
             {exercises.map((ex) => {
               const { count, hasWarning, isBroken } = getStreakDisplay(ex);
+
               const streakClass = isBroken
                 ? "streak-count--broken"
                 : hasWarning
                 ? "streak-count--warn"
                 : "streak-count--ok";
+
               return (
                 <div key={ex} className="exercise-card">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 20,
+                    }}
+                  >
                     <h3 className="exercise-card__name">{ex}</h3>
+
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span className={`streak-count ${streakClass}`}>{count}</span>
-                      <span style={{ fontSize: "1.2rem", filter: isBroken ? "grayscale(1) opacity(0.4)" : "none" }}>🔥</span>
-                      {hasWarning && !isBroken && <span style={{ fontSize: "1.1rem" }}>⏳</span>}
+                      <span className={`streak-count ${streakClass}`}>
+                        {count}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "1.2rem",
+                          filter: isBroken
+                            ? "grayscale(1) opacity(0.4)"
+                            : "none",
+                        }}
+                      >
+                        🔥
+                      </span>
+                      {hasWarning && !isBroken && (
+                        <span style={{ fontSize: "1.1rem" }}>⏳</span>
+                      )}
                     </div>
                   </div>
+
                   <button
                     className="btn btn--primary"
-                    onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
+                    onClick={() =>
+                      navigate(`/exercise/${encodeURIComponent(ex)}`)
+                    }
                   >
                     Start Exercise
                   </button>
@@ -120,19 +157,33 @@ const Dashboard = () => {
         {/* Specialty Section */}
         <section className="specialty-section">
           <div style={{ marginBottom: 28 }}>
-            <h2 className="section-title" style={{ color: "var(--accent-yellow)" }}>Specialty Rehabilitation</h2>
-            <p className="page-subtitle" style={{ marginTop: 8 }}>Select your condition to access guided recovery programs.</p>
+            <h2
+              className="section-title"
+              style={{ color: "var(--accent-yellow)" }}
+            >
+              Specialty Rehabilitation
+            </h2>
+            <p className="page-subtitle" style={{ marginTop: 8 }}>
+              Select your condition to access guided recovery programs.
+            </p>
           </div>
+
           <div className="grid--auto">
             {Object.keys(specialtyPrograms).map((condition) => (
               <div key={condition} className="specialty-card">
-                <div>
+                {/* ✅ Content wrapper added */}
+                <div className="specialty-card__content">
                   <h3 className="specialty-card__title">{condition}</h3>
-                  <p className="specialty-card__desc">Personalized rehabilitation exercises and recovery phases.</p>
+                  <p className="specialty-card__desc">
+                    Personalized rehabilitation exercises and recovery phases.
+                  </p>
                 </div>
+
                 <button
                   className="btn btn--blue"
-                  onClick={() => navigate(`/specialty/${encodeURIComponent(condition)}`)}
+                  onClick={() =>
+                    navigate(`/specialty/${encodeURIComponent(condition)}`)
+                  }
                 >
                   View Recovery Plan
                 </button>
