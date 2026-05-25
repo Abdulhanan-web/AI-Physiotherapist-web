@@ -1,3 +1,4 @@
+// pages/Dashboard.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -22,12 +23,8 @@ const Dashboard = () => {
   const [totalScore, setTotalScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [streaks, setStreaks] = useState({});
-  const [reportLoading, setReportLoading] = useState(false);
-  const [menuOpen, setMenuOpen] = useState({
-    sidebar: false,
-    reportDropdown: false,
-  });
-  const [profileCompleted, setProfileCompleted] = useState(null); // null = loading
+  const [menuOpen, setMenuOpen] = useState({ sidebar: false, reportDropdown: false });
+  const [profileCompleted, setProfileCompleted] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -36,34 +33,27 @@ const Dashboard = () => {
     fetchProfile();
   }, []);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen({
-          sidebar: false,
-          reportDropdown: false,
-        });
+        setMenuOpen({ sidebar: false, reportDropdown: false });
       }
     };
-    if (menuOpen.sidebar) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    if (menuOpen.sidebar) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
+  }, [menuOpen.sidebar]);
 
   const fetchUserScore = async () => {
     try {
       const response = await fetch("http://localhost:8000/user-score", {
-        method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
         setTotalScore(data.total_score);
       }
-    } catch (error) {
-      console.error("Error fetching user score:", error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -72,610 +62,208 @@ const Dashboard = () => {
   const fetchStreaks = async () => {
     try {
       const response = await fetch("http://localhost:8000/streaks", {
-        method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        const streakMap = {};
-        data.forEach((streak) => {
-          streakMap[streak.exercise_name] = streak;
-        });
-        setStreaks(streakMap);
+        const map = {};
+        data.forEach((s) => { map[s.exercise_name] = s; });
+        setStreaks(map);
       }
-    } catch (error) {
-      console.error("Error fetching streaks:", error);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchProfile = async () => {
     try {
       const response = await fetch("http://localhost:8000/profile", {
-        method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
         setProfileCompleted(data.profile_completed);
       }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
+    } catch {
       setProfileCompleted(false);
     }
   };
 
+  const closeMenu = () => setMenuOpen({ sidebar: false, reportDropdown: false });
+
   const generateReport = (type) => {
-
-    // Close sidebar/dropdown
-    setMenuOpen({
-      sidebar: false,
-      reportDropdown: false,
-    });
-
-    // Navigate to report page
+    closeMenu();
     navigate(`/report/${type}`);
   };
 
-  const getStreakDisplay = (exerciseName) => {
-    const streak = streaks[exerciseName];
-    if (!streak) return { count: 0, hasWarning: false, isBroken: false };
-    return {
-      count: streak.current_streak,
-      hasWarning: streak.has_warning,
-      isBroken: streak.is_broken,
-    };
+  const getStreakDisplay = (name) => {
+    const s = streaks[name];
+    if (!s) return { count: 0, hasWarning: false, isBroken: false };
+    return { count: s.current_streak, hasWarning: s.has_warning, isBroken: s.is_broken };
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#1a1a1a",
-        color: "white",
-        padding: "40px 60px",
-        fontFamily: "'Segoe UI', Roboto, sans-serif",
-      }}
-    >
-      {/* ── Overlay ── */}
-      <div
-        onClick={() => setMenuOpen({
-          sidebar: false,
-          reportDropdown: false,
-        })}
-        style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0,0,0,0.55)",
-          zIndex: 998,
-          opacity: menuOpen.sidebar ? 1 : 0,
-          pointerEvents: menuOpen.sidebar ? "all" : "none",
-          transition: "opacity 0.3s ease",
-        }}
-      />
+    <div className="page">
+      {/* Overlay */}
+      {menuOpen.sidebar && (
+        <div
+          className="sidebar-overlay"
+          onClick={closeMenu}
+          style={{ opacity: 1, pointerEvents: "all" }}
+        />
+      )}
 
-      {/* ── Side Menu ── */}
+      {/* Sidebar */}
       <div
         ref={menuRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          height: "100vh",
-          width: "300px",
-          backgroundColor: "#111827",
-          zIndex: 999,
-          transform: menuOpen.sidebar
-            ? "translateX(0)"
-            : "translateX(-100%)",
-          transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: menuOpen ? "6px 0 30px rgba(0,0,0,0.5)" : "none",
-          borderRight: "1px solid #1f2937",
-        }}
+        className="sidebar"
+        style={{ transform: menuOpen.sidebar ? "translateX(0)" : "translateX(-100%)" }}
       >
-        {/* Menu Header */}
-        <div
-          style={{
-            padding: "28px 24px 20px",
-            borderBottom: "1px solid #1f2937",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #2ecc71, #3498db)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1rem",
-              }}
-            >
-              🏥
-            </div>
-            <span style={{ fontWeight: "700", fontSize: "1rem", color: "#f9fafb" }}>
-              RehabPanel
-            </span>
+        <div className="sidebar__header">
+          <div className="sidebar__brand">
+            <div className="sidebar__brand-icon">🏥</div>
+            <span className="sidebar__brand-name">RehabPanel</span>
           </div>
-          {/* Close button */}
-          <button
-            onClick={() => setMenuOpen({
-              sidebar: false,
-              reportDropdown: false,
-            })}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#9ca3af",
-              cursor: "pointer",
-              fontSize: "1.3rem",
-              lineHeight: 1,
-              padding: "4px",
-              borderRadius: "6px",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => (e.target.style.color = "#f9fafb")}
-            onMouseLeave={(e) => (e.target.style.color = "#9ca3af")}
-            aria-label="Close menu"
-          >
-            ✕
-          </button>
+          <button className="sidebar__close" onClick={closeMenu} aria-label="Close">✕</button>
         </div>
 
-        {/* Score pill inside menu */}
-        <div style={{ padding: "20px 24px" }}>
-          <div
-            style={{
-              backgroundColor: "#1f2937",
-              borderRadius: "12px",
-              padding: "16px 20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ color: "#9ca3af", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Total Score
-            </span>
-            <span style={{ color: "#2ecc71", fontSize: "1.8rem", fontWeight: "900" }}>
-              {loading ? "…" : totalScore}
-            </span>
-          </div>
+        <div className="sidebar__score">
+          <span className="sidebar__score-label">Total Score</span>
+          <span className="sidebar__score-value">{loading ? "…" : totalScore}</span>
         </div>
 
-        {/* Divider */}
-        <div style={{ height: "1px", backgroundColor: "#1f2937", margin: "0 24px" }} />
+        <div className="sidebar__divider" />
 
-        {/* Menu Actions */}
-        <nav style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-          {/* Generate Report Dropdown */}
-          <div style={{ position: "relative", width: "100%" }}>
-            {/* Main Button */}
+        <nav className="sidebar__nav">
+          {/* Report dropdown */}
+          <div style={{ position: "relative" }}>
             <button
-              onClick={() =>
-                setMenuOpen((prev) => ({
-                  ...prev,
-                  reportDropdown: !prev.reportDropdown,
-                }))
-              }
-              disabled={reportLoading}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "13px 16px",
-                borderRadius: "10px",
-                border: "none",
-                backgroundColor: "#9b59b6",
-                color: "white",
-                cursor: reportLoading ? "not-allowed" : "pointer",
-                fontSize: "0.95rem",
-                fontWeight: "600",
-                transition: "all 0.25s ease",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#8e44ad")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "#9b59b6")
-              }
+              className="sidebar__menu-btn"
+              style={{ background: "var(--accent-purple)", color: "#fff", borderRadius: "var(--r-sm)", justifyContent: "space-between" }}
+              onClick={() => setMenuOpen((p) => ({ ...p, reportDropdown: !p.reportDropdown }))}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-              >
-                <span style={{ fontSize: "1.1rem" }}>📄</span>
-
-                <span>
-                  {reportLoading
-                    ? "Generating..."
-                    : "Generate Health Report"}
-                </span>
-              </div>
-
-              <span style={{ fontSize: "0.9rem" }}>
-                ▼
+              <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span className="sidebar__menu-btn__icon">📄</span> Generate Health Report
               </span>
+              <span style={{ fontSize: "0.75rem" }}>▼</span>
             </button>
 
-            {/* Dropdown */}
             {menuOpen.reportDropdown && (
-              <div
-                style={{
-                  marginTop: "8px",
-                  backgroundColor: "#1f2937",
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  border: "1px solid #374151",
-                  boxShadow: "0 10px 20px rgba(0,0,0,0.35)",
-                  animation: "fadeIn 0.25s ease",
-                }}
-              >
-                {/* Weekly Report */}
-                <button
-                  onClick={() => generateReport("weekly")}
-                  style={{
-                    width: "100%",
-                    padding: "14px 16px",
-                    background: "transparent",
-                    border: "none",
-                    color: "#f9fafb",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    fontSize: "0.92rem",
-                    fontWeight: "500",
-                    transition: "background 0.2s ease",
-                    borderBottom: "1px solid #374151",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#374151")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  📅 Generate Weekly Report
+              <div className="report-dropdown">
+                <button className="report-dropdown__item" onClick={() => generateReport("weekly")}>
+                  📅 Weekly Report
                 </button>
-
-                {/* Monthly Report */}
-                <button
-                  onClick={() => generateReport("monthly")}
-                  style={{
-                    width: "100%",
-                    padding: "14px 16px",
-                    background: "transparent",
-                    border: "none",
-                    color: "#f9fafb",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    fontSize: "0.92rem",
-                    fontWeight: "500",
-                    transition: "background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#374151")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  🗓️ Generate Monthly Report
+                <button className="report-dropdown__item" onClick={() => generateReport("monthly")}>
+                  🗓️ Monthly Report
                 </button>
               </div>
             )}
           </div>
 
-          {/* Profile button — changes based on completion status */}
+          {/* Profile */}
           {profileCompleted === false && (
-            <MenuButton
-              icon="👤"
-              label="Complete User Profile"
-              onClick={() => {
-                setMenuOpen({
-                  sidebar: false,
-                  reportDropdown: false,
-                });
-                navigate("/profile");
-              }}
-              color="#3498db"
-              hoverColor="#2980b9"
-            />
+            <SidebarBtn icon="👤" label="Complete User Profile" color="var(--accent-blue)"
+              onClick={() => { closeMenu(); navigate("/profile"); }} />
           )}
           {profileCompleted === true && (
-            <MenuButton
-              icon="✏️"
-              label="Update Profile Info"
-              onClick={() => {
-                setMenuOpen({
-                  sidebar: false,
-                  reportDropdown: false,
-                });
-                navigate("/profile");
-              }}
-              color="#27ae60"
-              hoverColor="#219150"
-            />
+            <SidebarBtn icon="✏️" label="Update Profile Info" color="var(--accent-green)"
+              onClick={() => { closeMenu(); navigate("/profile"); }} />
           )}
-          <MenuButton
-            icon="🥗"
-            label="Nutrition Plan"
-            onClick={() => {
-              setMenuOpen({
-                sidebar: false,
-                reportDropdown: false,
-              });
-              navigate("/nutrition");
-            }}
-            color="#e67e22"
-            hoverColor="#d35400"
-          />
+
+          <SidebarBtn icon="🥗" label="Nutrition Plan" color="var(--accent-orange)"
+            onClick={() => { closeMenu(); navigate("/nutrition"); }} />
         </nav>
 
-        {/* Logout — pinned to bottom */}
-        <div style={{ padding: "16px 16px 28px" }}>
-          <div style={{ height: "1px", backgroundColor: "#1f2937", marginBottom: "16px" }} />
-          <MenuButton
-            icon="🚪"
-            label="Log Out"
-            onClick={() => {
-              setMenuOpen({
-                sidebar: false,
-                reportDropdown: false,
-              });
-              logout();
-              navigate("/login");
-            }}
-            color="#e74c3c"
-            hoverColor="#c0392b"
-          />
+        <div className="sidebar__footer">
+          <SidebarBtn icon="🚪" label="Log Out" danger
+            onClick={() => { closeMenu(); logout(); navigate("/login"); }} />
         </div>
       </div>
 
-      {/* ── Hamburger Button ── */}
-      <button
-        onClick={() => setMenuOpen((prev) => ({
-          ...prev,
-          sidebar: true,
-        }))}
-        aria-label="Open menu"
-        style={{
-          position: "fixed",
-          top: "20px",
-          left: "20px",
-          zIndex: 997,
-          background: "#1f2937",
-          border: "1px solid #374151",
-          borderRadius: "10px",
-          width: "46px",
-          height: "46px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "5px",
-          cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
-          transition: "background 0.2s",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#374151")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#1f2937")}
-      >
-        <span style={{ display: "block", width: "20px", height: "2px", background: "#f9fafb", borderRadius: "2px" }} />
-        <span style={{ display: "block", width: "20px", height: "2px", background: "#f9fafb", borderRadius: "2px" }} />
-        <span style={{ display: "block", width: "20px", height: "2px", background: "#f9fafb", borderRadius: "2px" }} />
+      {/* Hamburger */}
+      <button className="hamburger" onClick={() => setMenuOpen((p) => ({ ...p, sidebar: true }))} aria-label="Open menu">
+        <span className="hamburger__bar" />
+        <span className="hamburger__bar" />
+        <span className="hamburger__bar" />
       </button>
 
-      {/* ── Header Section ── */}
-      <div style={{ textAlign: "center", marginBottom: "50px", paddingTop: "10px" }}>
-        <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "10px" }}>
-          Rehabilitation Exercise Control Panel
-        </h1>
-        <p style={{ color: "#aaa" }}>Select an exercise to begin your session</p>
+      {/* Main Content */}
+      <div className="page--app" style={{ paddingTop: "72px" }}>
+        {/* Header */}
+        <header className="dashboard-header">
+          <h1 className="page-title">Rehabilitation Control Panel</h1>
+          <p className="page-subtitle" style={{ marginTop: 8 }}>Select an exercise to begin your session</p>
 
-        {/* Score Card (center, no buttons here anymore) */}
-        <div style={{ marginTop: "30px", display: "flex", justifyContent: "center" }}>
-          <div
-            style={{
-              padding: "20px 40px",
-              backgroundColor: "#2c3e50",
-              borderRadius: "14px",
-              display: "inline-block",
-              boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
-            }}
-          >
-            <p style={{ margin: 0, color: "#bdc3c7", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "1px" }}>
-              TOTAL SCORE
-            </p>
-            <h2 style={{ margin: "10px 0 0 0", color: "#2ecc71", fontSize: "2.8rem", fontWeight: "900" }}>
-              {loading ? "..." : totalScore}
-            </h2>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+            <div className="stat-card">
+              <div className="stat-card__label">Total Score</div>
+              <div className="stat-card__value">{loading ? "…" : totalScore}</div>
+            </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* ── Exercise Grid ── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "25px",
-          maxWidth: "100vw",
-          margin: "40px auto",
-        }}
-      >
-        {exercises.map((ex, index) => {
-          const { count, hasWarning, isBroken } = getStreakDisplay(ex);
-          return (
-            <div
-              key={index}
-              style={{
-                padding: "30px",
-                background: "#ffffff",
-                borderRadius: "16px",
-                boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                transition: "transform 0.2s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-5px)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-            >
-              <div style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "20px",
-                  }}
-                >
-                  <h3 style={{ color: "#2d3436", margin: "0", fontSize: "1.25rem", fontWeight: "600" }}>
-                    {ex}
-                  </h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span
-                      style={{
-                        fontSize: "1.5rem",
-                        fontWeight: "bold",
-                        color: isBroken ? "#dc3545" : hasWarning ? "#ff6b00" : "#28a745",
-                      }}
-                    >
-                      {count}
-                    </span>
-                    <span style={{ fontSize: "1.3rem", filter: isBroken ? "grayscale(1) opacity(0.5)" : "none" }}>
-                      🔥
-                    </span>
-                    {hasWarning && !isBroken && (
-                      <span style={{ fontSize: "1.2rem", marginLeft: "2px" }}>⏳</span>
-                    )}
+        {/* Exercise Grid */}
+        <section style={{ marginTop: 40 }}>
+          <div className="grid--auto">
+            {exercises.map((ex) => {
+              const { count, hasWarning, isBroken } = getStreakDisplay(ex);
+              const streakClass = isBroken ? "streak-count--broken" : hasWarning ? "streak-count--warn" : "streak-count--ok";
+              return (
+                <div key={ex} className="exercise-card">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                    <h3 className="exercise-card__name">{ex}</h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span className={`streak-count ${streakClass}`}>{count}</span>
+                      <span style={{ fontSize: "1.2rem", filter: isBroken ? "grayscale(1) opacity(0.4)" : "none" }}>🔥</span>
+                      {hasWarning && !isBroken && <span style={{ fontSize: "1.1rem" }}>⏳</span>}
+                    </div>
                   </div>
+                  <button
+                    className="btn btn--primary"
+                    onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
+                  >
+                    Start Exercise
+                  </button>
                 </div>
-              </div>
-              <button
-                onClick={() => navigate(`/exercise/${encodeURIComponent(ex)}`)}
-                style={{
-                  backgroundColor: "#2ecc71",
-                  color: "white",
-                  border: "none",
-                  padding: "12px 24px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  width: "100%",
-                  fontSize: "1rem",
-                  transition: "background 0.3s ease",
-                }}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#27ae60")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = "#2ecc71")}
-              >
-                Start Exercise
-              </button>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </section>
 
-      {/* ── Specialty Rehabilitation Section ── */}
-      <div style={{ marginTop: "70px", maxWidth: "1200px", marginLeft: "auto", marginRight: "auto" }}>
-        <div style={{ marginBottom: "30px" }}>
-          <h2 style={{ fontSize: "2rem", fontWeight: "700", color: "#f1c40f", marginBottom: "10px" }}>
-            Specialty Rehabilitation
-          </h2>
-          <p style={{ color: "#aaa", fontSize: "1rem" }}>
-            Select your condition to access guided rehabilitation programs.
-          </p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "25px" }}>
-          {Object.keys(specialtyPrograms).map((condition, index) => (
-            <div
-              key={index}
-              style={{
-                background: "#2c3e50",
-                borderRadius: "18px",
-                padding: "30px",
-                boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
-                transition: "transform 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-5px)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-            >
-              <h3 style={{ marginBottom: "15px", fontSize: "1.4rem", color: "#fff" }}>{condition}</h3>
-              <p style={{ color: "#bdc3c7", marginBottom: "25px", lineHeight: "1.5" }}>
-                Personalized rehabilitation exercises and recovery phases.
-              </p>
-              <button
-                onClick={() => navigate(`/specialty/${encodeURIComponent(condition)}`)}
-                style={{
-                  width: "100%",
-                  backgroundColor: "#3498db",
-                  color: "white",
-                  border: "none",
-                  padding: "14px",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  transition: "background 0.3s ease",
-                }}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#2980b9")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = "#3498db")}
-              >
-                View Recovery Plan
-              </button>
-            </div>
-          ))}
-        </div>
+        {/* Specialty Section */}
+        <section className="specialty-section">
+          <div style={{ marginBottom: 28 }}>
+            <h2 className="section-title" style={{ color: "var(--accent-yellow)" }}>Specialty Rehabilitation</h2>
+            <p className="page-subtitle" style={{ marginTop: 8 }}>Select your condition to access guided recovery programs.</p>
+          </div>
+          <div className="grid--auto">
+            {Object.keys(specialtyPrograms).map((condition) => (
+              <div key={condition} className="specialty-card">
+                <div>
+                  <h3 className="specialty-card__title">{condition}</h3>
+                  <p className="specialty-card__desc">Personalized rehabilitation exercises and recovery phases.</p>
+                </div>
+                <button
+                  className="btn btn--blue"
+                  onClick={() => navigate(`/specialty/${encodeURIComponent(condition)}`)}
+                >
+                  View Recovery Plan
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
 };
 
-/* ── Reusable menu button ── */
-const MenuButton = ({ icon, label, onClick, disabled = false, color, hoverColor }) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        padding: "13px 16px",
-        borderRadius: "10px",
-        border: "none",
-        backgroundColor: hovered ? color : "transparent",
-        color: hovered ? "#fff" : "#d1d5db",
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontSize: "0.95rem",
-        fontWeight: "500",
-        textAlign: "left",
-        transition: "background-color 0.2s, color 0.2s",
-        opacity: disabled ? 0.6 : 1,
-      }}
-    >
-      <span style={{ fontSize: "1.1rem", minWidth: "22px", textAlign: "center" }}>{icon}</span>
-      {label}
-    </button>
-  );
-};
+const SidebarBtn = ({ icon, label, onClick, danger }) => (
+  <button
+    className={`sidebar__menu-btn${danger ? " sidebar__menu-btn--danger" : ""}`}
+    onClick={onClick}
+  >
+    <span className="sidebar__menu-btn__icon">{icon}</span>
+    {label}
+  </button>
+);
 
 export default Dashboard;

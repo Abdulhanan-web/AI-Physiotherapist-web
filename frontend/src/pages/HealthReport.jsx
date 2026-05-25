@@ -1,265 +1,118 @@
+// pages/HealthReport.jsx
 import React, { useEffect, useState } from "react";
-import {
-    LineChart,
-    Line,
-    CartesianGrid,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    BarChart,
-    Bar
-} from "recharts";
-
-import { useParams } from "react-router-dom";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const HealthReport = () => {
+  const { type } = useParams();
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [report, setReport] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
-    const { type } = useParams();
-
-    const { token } = useAuth();
-
-    const [report, setReport] = useState(null);
-
-    useEffect(() => {
-        fetchReport();
-    }, []);
-
+  useEffect(() => {
     const fetchReport = async () => {
-
-        const response = await fetch(
-            `http://localhost:8000/generate-report-data/${type}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        );
-
-        const data = await response.json();
-
-        setReport(data);
+      const res = await fetch(`http://localhost:8000/generate-report-data/${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setReport(data);
     };
+    fetchReport();
+  }, [type, token]);
 
-    if (!report) {
-        return <h1>Loading...</h1>;
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`http://localhost:8000/generate-report/${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { alert("Failed to download report"); return; }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${type}_health_report.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Error downloading PDF");
+    } finally {
+      setDownloading(false);
     }
+  };
 
-    return (
-        <div
-            style={{
-                minHeight: "100vh",
-                background: "#111827",
-                color: "white",
-                padding: "40px"
-            }}
-        >
+  if (!report) return <div className="page-loading">Generating report…</div>;
 
-            <h1>
-                {type.toUpperCase()} Health Report
-            </h1>
+  const tooltipStyle = {
+    backgroundColor: "var(--bg-card)",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    color: "var(--text-primary)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.82rem",
+  };
 
-            {/* SUMMARY CARDS */}
+  return (
+    <div className="page report-page">
+      <button className="btn-back" onClick={() => navigate("/")}>← Dashboard</button>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4,1fr)",
-                    gap: "20px",
-                    marginTop: "30px"
-                }}
-            >
+      <h1 style={{ marginTop: 24 }}>
+        <span style={{ color: "var(--text-secondary)", fontWeight: 400, fontSize: "0.7em", display: "block", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {type} report
+        </span>
+        Health Overview
+      </h1>
 
-                <Card
-                    title="Sessions"
-                    value={report.summary.total_sessions}
-                />
+      {/* Summary Cards */}
+      <div className="report-summary">
+        {[
+          { label: "Sessions", value: report.summary.total_sessions },
+          { label: "Calories Burned", value: report.summary.total_calories },
+          { label: "Minutes Active", value: report.summary.total_minutes },
+          { label: "Avg. Accuracy", value: `${report.summary.average_accuracy}%` },
+        ].map(({ label, value }) => (
+          <div key={label} className="report-summary-card">
+            <div className="report-summary-card__label">{label}</div>
+            <div className="report-summary-card__value">{value}</div>
+          </div>
+        ))}
+      </div>
 
-                <Card
-                    title="Calories"
-                    value={report.summary.total_calories}
-                />
+      {/* Line Chart */}
+      <div className="chart-section">
+        <h2>Recovery Progress</h2>
+        <ResponsiveContainer width="100%" height={360}>
+          <LineChart data={report.report_data}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            <YAxis stroke="var(--text-muted)" tick={{ fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Line type="monotone" dataKey="avg_accuracy" stroke="var(--accent-green)" strokeWidth={3} dot={{ fill: "var(--accent-green)", r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-                <Card
-                    title="Minutes"
-                    value={report.summary.total_minutes}
-                />
+      {/* Bar Chart */}
+      <div className="chart-section">
+        <h2>Calories Burned</h2>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={report.report_data}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            <YAxis stroke="var(--text-muted)" tick={{ fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="calories" fill="var(--accent-blue)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
-                <Card
-                    title="Accuracy"
-                    value={`${report.summary.average_accuracy}%`}
-                />
-
-            </div>
-
-            {/* CHART */}
-
-            <div
-                style={{
-                    marginTop: "50px",
-                    background: "#1f2937",
-                    padding: "20px",
-                    borderRadius: "16px"
-                }}
-            >
-
-                <h2>Recovery Progress</h2>
-
-                <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={report.report_data}>
-
-                        <Line
-                            type="monotone"
-                            dataKey="avg_accuracy"
-                            stroke="#2ecc71"
-                            strokeWidth={4}
-                        />
-
-                        <CartesianGrid stroke="#444" />
-
-                        <XAxis dataKey="period" />
-
-                        <YAxis />
-
-                        <Tooltip />
-
-                    </LineChart>
-                </ResponsiveContainer>
-
-            </div>
-
-            {/* CALORIES BAR CHART */}
-
-            <div
-                style={{
-                    marginTop: "40px",
-                    background: "#1f2937",
-                    padding: "20px",
-                    borderRadius: "16px"
-                }}
-            >
-
-                <h2>Calories Burned</h2>
-
-                <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={report.report_data}>
-
-                        <Bar
-                            dataKey="calories"
-                            fill="#3498db"
-                        />
-
-                        <CartesianGrid stroke="#444" />
-
-                        <XAxis dataKey="period" />
-
-                        <YAxis />
-
-                        <Tooltip />
-
-                    </BarChart>
-                </ResponsiveContainer>
-
-            </div>
-
-            {/* DOWNLOAD BUTTON */}
-
-            <button
-                onClick={async () => {
-
-                    try {
-
-                        const response = await fetch(
-                            `http://localhost:8000/generate-report/${type}`,
-                            {
-                                method: "GET",
-
-                                headers: {
-                                    Authorization: `Bearer ${token}`
-                                }
-                            }
-                        );
-
-                        if (!response.ok) {
-
-                            alert("Failed to download report");
-
-                            return;
-                        }
-
-                        // Convert response to blob
-                        const blob = await response.blob();
-
-                        // Create downloadable URL
-                        const url = window.URL.createObjectURL(blob);
-
-                        // Create temporary anchor
-                        const a = document.createElement("a");
-
-                        a.href = url;
-
-                        a.download = `${type}_health_report.pdf`;
-
-                        document.body.appendChild(a);
-
-                        a.click();
-
-                        a.remove();
-
-                        window.URL.revokeObjectURL(url);
-
-                    } catch (error) {
-
-                        console.error(error);
-
-                        alert("Error downloading PDF");
-                    }
-                }}
-
-                style={{
-                    marginTop: "40px",
-                    background: "#2ecc71",
-                    padding: "15px 30px",
-                    border: "none",
-                    borderRadius: "12px",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                    cursor: "pointer"
-                }}
-            >
-                Download PDF Report
-            </button>
-
-        </div>
-    );
-};
-
-const Card = ({ title, value }) => {
-
-    return (
-        <div
-            style={{
-                background: "#1f2937",
-                padding: "30px",
-                borderRadius: "16px",
-                textAlign: "center"
-            }}
-        >
-
-            <h3>{title}</h3>
-
-            <h1
-                style={{
-                    color: "#2ecc71"
-                }}
-            >
-                {value}
-            </h1>
-
-        </div>
-    );
+      <button className="btn btn--primary" style={{ maxWidth: 280, marginTop: 8 }} onClick={handleDownload} disabled={downloading}>
+        {downloading ? "Generating PDF…" : "⬇ Download PDF Report"}
+      </button>
+    </div>
+  );
 };
 
 export default HealthReport;

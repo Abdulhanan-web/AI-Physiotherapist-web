@@ -1,60 +1,42 @@
+// pages/Signup.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const EyeIcon = ({ visible }) =>
   visible ? (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
     </svg>
   ) : (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
       <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   );
 
-const PasswordInput = ({ placeholder, value, onChange, style, ...props }) => {
+const PasswordInput = ({ placeholder, value, onChange, required }) => {
   const [show, setShow] = useState(false);
   return (
-    <div style={{ position: "relative", marginBottom: style?.marginBottom ?? "10px" }}>
+    <div className="password-wrapper">
       <input
         type={show ? "text" : "password"}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        {...props}
-        style={{
-          padding: "10px 40px 10px 10px",
-          width: "100%",
-          boxSizing: "border-box",
-          ...style,
-          marginBottom: 0,
-        }}
+        required={required}
+        className="form-input"
       />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        style={{
-          position: "absolute",
-          right: "10px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          color: "#888",
-          display: "flex",
-          alignItems: "center",
-          padding: 0,
-        }}
-        aria-label={show ? "Hide password" : "Show password"}
-      >
+      <button type="button" className="password-toggle" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide" : "Show"}>
         <EyeIcon visible={show} />
       </button>
     </div>
   );
+};
+
+const validatePassword = (pw) => {
+  const rx = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+  return rx.test(pw) ? null : "Must be 8+ chars with uppercase, lowercase, number & special char.";
 };
 
 const Signup = () => {
@@ -66,21 +48,11 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const validatePassword = (password) => {
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
-    if (!regex.test(password)) {
-      return "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
-    }
-    return null;
-  };
-
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    const passwordError = validatePassword(password);
-    if (passwordError) return setError(passwordError);
+    setError(""); setSuccess("");
+    const pwErr = validatePassword(password);
+    if (pwErr) return setError(pwErr);
     if (password !== confirmPassword) return setError("Passwords do not match");
 
     setLoading(true);
@@ -90,14 +62,10 @@ const Signup = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed to send verification code");
-
       setSuccess("Verification code sent to your email");
-      setTimeout(() => {
-        navigate(`/verify-registration?email=${encodeURIComponent(email)}`);
-      }, 1500);
+      setTimeout(() => navigate(`/verify-registration?email=${encodeURIComponent(email)}`), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,54 +74,44 @@ const Signup = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#1a1a1a", minHeight: "100vh", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <form onSubmit={handleSignup} style={{ background: "#333", padding: "40px", borderRadius: "10px", width: "350px", display: "flex", flexDirection: "column" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "10px" }}>Create Account</h2>
+    <div className="page page--auth">
+      <div className="auth-card">
+        <div className="auth-card__logo">
+          <div className="auth-card__logo-icon">🏥</div>
+        </div>
+        <h2>Create account</h2>
+        <p className="auth-card__sub">Start your rehabilitation journey today</p>
 
-        {error && <p style={{ color: "#e74c3c", textAlign: "center" }}>{error}</p>}
-        {success && <p style={{ color: "#2ecc71", textAlign: "center" }}>{success}</p>}
+        {error && <div className="flash flash--error">{error}</div>}
+        {success && <div className="flash flash--success">{success}</div>}
 
-        <input
-          type="email"
-          placeholder="Email Address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ marginBottom: "10px", padding: "10px" }}
-        />
+        <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="form-input"
+          />
 
-        <PasswordInput
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ marginBottom: "5px" }}
-        />
+          <PasswordInput placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-        <p style={{ fontSize: "12px", color: "#bbb", marginBottom: "10px" }}>
-          Password must contain:
-          <br />• At least 8 characters
-          <br />• Uppercase and lowercase letters
-          <br />• A number
-          <br />• A special character (@$!%*?&)
-        </p>
+          <div className="password-hint">
+            8+ chars · uppercase &amp; lowercase · number · special char (@$!%*?&amp;)
+          </div>
 
-        <PasswordInput
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          style={{ marginBottom: "20px" }}
-        />
+          <PasswordInput placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Sending..." : "Sign Up"}
-        </button>
+          <button type="submit" className="btn btn--primary" disabled={loading} style={{ marginTop: 4 }}>
+            {loading ? "Sending…" : "Sign Up"}
+          </button>
+        </form>
 
-        <p style={{ marginTop: "20px", textAlign: "center" }}>
+        <p style={{ textAlign: "center", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
           Already have an account? <Link to="/login">Login here</Link>
         </p>
-      </form>
+      </div>
     </div>
   );
 };
