@@ -97,7 +97,6 @@ const ProfileSetup = () => {
       <AppSidebar activePage="profile" />
 
       <div className="profile-page" style={{ paddingTop: "72px" }}>
-        <button className="btn-back" onClick={() => navigate("/")}>← Dashboard</button>
 
         <div style={{ maxWidth: 800, margin: "32px auto 0" }}>
           <h1

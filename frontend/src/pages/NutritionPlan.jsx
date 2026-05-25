@@ -36,7 +36,6 @@ const NutritionPlan = () => {
       <AppSidebar activePage="nutrition" />
 
       <div className="nutrition-page" style={{ paddingTop: "72px" }}>
-        <button className="btn-back" onClick={() => navigate("/")}>← Dashboard</button>
 
         <h1 style={{ marginTop: 24 }}>🥗 Nutrition Plan</h1>
         <p className="page-subtitle" style={{ marginTop: 8 }}>Your personalised daily nutrition guide.</p>

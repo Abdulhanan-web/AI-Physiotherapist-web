@@ -66,7 +66,6 @@ const HealthReport = () => {
       <AppSidebar activePage="report" />
 
       <div className="report-page" style={{ paddingTop: "72px" }}>
-        <button className="btn-back" onClick={() => navigate("/")}>← Dashboard</button>
 
         <h1 style={{ marginTop: 24 }}>
           <span style={{
