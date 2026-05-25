@@ -1,3 +1,4 @@
+from http.client import HTTPException
 import smtplib
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
@@ -39,13 +40,22 @@ def send_verification_email(to_email: str, code: str):
 
     This code will expire in 15 minutes.
     """
+
     msg = MIMEText(body)
     msg["Subject"] = "Email Verification Code"
     msg["From"] = EMAIL
     msg["To"] = to_email
 
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    server.starttls()
-    server.login(EMAIL, PASSWORD)
-    server.sendmail(EMAIL, to_email, msg.as_string())
-    server.quit()
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(EMAIL, PASSWORD)
+
+        server.sendmail(EMAIL, to_email, msg.as_string())
+        server.quit()
+
+        print("Verification email sent successfully")
+
+    except Exception as e:
+        print("Email error:", e)
+        raise HTTPException(status_code=500, detail="Failed to send email")

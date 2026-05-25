@@ -355,10 +355,13 @@ def register_request(user: schemas.UserVerificationRequest, db: Session = Depend
         )
         db.add(verification)
 
-    db.commit()
-    send_verification_email(user.email, code)
 
-    return {"message": "Verification code sent to email"}
+    try:
+        send_verification_email(user.email, code)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to send verification email")
 
 
 @app.post("/verify-registration", response_model=schemas.UserResponse)
