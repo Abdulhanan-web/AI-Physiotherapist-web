@@ -23,7 +23,11 @@ const AppSidebar = ({ activePage }) => {
   const [totalScore, setTotalScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [profileCompleted, setProfileCompleted] = useState(null);
-  const [menuOpen, setMenuOpen] = useState({ sidebar: false, reportDropdown: false });
+  const [menuOpen, setMenuOpen] = useState({
+    sidebar: false,
+    reportDropdown: false,
+  });
+
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -37,8 +41,13 @@ const AppSidebar = ({ activePage }) => {
         setMenuOpen({ sidebar: false, reportDropdown: false });
       }
     };
-    if (menuOpen.sidebar) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    if (menuOpen.sidebar) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen.sidebar]);
 
   const fetchUserScore = async () => {
@@ -71,7 +80,8 @@ const AppSidebar = ({ activePage }) => {
     }
   };
 
-  const closeMenu = () => setMenuOpen({ sidebar: false, reportDropdown: false });
+  const closeMenu = () =>
+    setMenuOpen({ sidebar: false, reportDropdown: false });
 
   const generateReport = (type) => {
     closeMenu();
@@ -93,19 +103,31 @@ const AppSidebar = ({ activePage }) => {
       <div
         ref={menuRef}
         className="sidebar"
-        style={{ transform: menuOpen.sidebar ? "translateX(0)" : "translateX(-100%)" }}
+        style={{
+          transform: menuOpen.sidebar
+            ? "translateX(0)"
+            : "translateX(-100%)",
+        }}
       >
         <div className="sidebar__header">
           <div className="sidebar__brand">
             <div className="sidebar__brand-icon">🏥</div>
             <span className="sidebar__brand-name">RehabPanel</span>
           </div>
-          <button className="sidebar__close" onClick={closeMenu} aria-label="Close">✕</button>
+          <button
+            className="sidebar__close"
+            onClick={closeMenu}
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="sidebar__score">
           <span className="sidebar__score-label">Total Score</span>
-          <span className="sidebar__score-value">{loading ? "…" : totalScore}</span>
+          <span className="sidebar__score-value">
+            {loading ? "…" : totalScore}
+          </span>
         </div>
 
         <div className="sidebar__divider" />
@@ -116,33 +138,64 @@ const AppSidebar = ({ activePage }) => {
             icon="📊"
             label="Dashboard"
             active={activePage === "dashboard"}
-            onClick={() => { closeMenu(); navigate("/"); }}
+            onClick={() => {
+              closeMenu();
+              navigate("/");
+            }}
           />
 
-          {/* Report dropdown */}
+          {/* Generate Health Report */}
           <div style={{ position: "relative" }}>
             <button
-              className="sidebar__menu-btn"
+              className={`sidebar__menu-btn ${
+                activePage === "report"
+                  ? "sidebar__menu-btn--active-custom"
+                  : ""
+              }`}
+              onClick={() =>
+                setMenuOpen((p) => ({
+                  ...p,
+                  reportDropdown: !p.reportDropdown,
+                }))
+              }
               style={{
-                background: activePage === "report" ? "var(--accent-purple)" : "var(--accent-purple)",
-                color: "#fff",
-                borderRadius: "var(--r-sm)",
                 justifyContent: "space-between",
+                alignItems: "center",
               }}
-              onClick={() => setMenuOpen((p) => ({ ...p, reportDropdown: !p.reportDropdown }))}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span className="sidebar__menu-btn__icon">📄</span> Generate Health Report
+              <span
+                style={{ display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <span className="sidebar__menu-btn__icon">📄</span>
+                Generate Health Report
               </span>
-              <span style={{ fontSize: "0.75rem" }}>▼</span>
+
+              {/* Dropdown arrow */}
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  transition: "0.2s ease",
+                  transform: menuOpen.reportDropdown
+                    ? "rotate(180deg)"
+                    : "rotate(0deg)",
+                }}
+              >
+                ▼
+              </span>
             </button>
 
             {menuOpen.reportDropdown && (
               <div className="report-dropdown">
-                <button className="report-dropdown__item" onClick={() => generateReport("weekly")}>
+                <button
+                  className="report-dropdown__item"
+                  onClick={() => generateReport("weekly")}
+                >
                   📅 Weekly Report
                 </button>
-                <button className="report-dropdown__item" onClick={() => generateReport("monthly")}>
+                <button
+                  className="report-dropdown__item"
+                  onClick={() => generateReport("monthly")}
+                >
                   🗓️ Monthly Report
                 </button>
               </div>
@@ -155,26 +208,34 @@ const AppSidebar = ({ activePage }) => {
               icon="👤"
               label="Complete User Profile"
               active={activePage === "profile"}
-              color="var(--accent-blue)"
-              onClick={() => { closeMenu(); navigate("/profile"); }}
+              onClick={() => {
+                closeMenu();
+                navigate("/profile");
+              }}
             />
           )}
+
           {profileCompleted === true && (
             <SidebarBtn
               icon="✏️"
               label="Update Profile Info"
               active={activePage === "profile"}
-              color="var(--accent-green)"
-              onClick={() => { closeMenu(); navigate("/profile"); }}
+              onClick={() => {
+                closeMenu();
+                navigate("/profile");
+              }}
             />
           )}
 
+          {/* Nutrition */}
           <SidebarBtn
             icon="🥗"
             label="Nutrition Plan"
             active={activePage === "nutrition"}
-            color="var(--accent-orange)"
-            onClick={() => { closeMenu(); navigate("/nutrition"); }}
+            onClick={() => {
+              closeMenu();
+              navigate("/nutrition");
+            }}
           />
         </nav>
 
@@ -183,7 +244,11 @@ const AppSidebar = ({ activePage }) => {
             icon="🚪"
             label="Log Out"
             danger
-            onClick={() => { closeMenu(); logout(); navigate("/login"); }}
+            onClick={() => {
+              closeMenu();
+              logout();
+              navigate("/login");
+            }}
           />
         </div>
       </div>
@@ -191,7 +256,9 @@ const AppSidebar = ({ activePage }) => {
       {/* Hamburger */}
       <button
         className="hamburger"
-        onClick={() => setMenuOpen((p) => ({ ...p, sidebar: true }))}
+        onClick={() =>
+          setMenuOpen((p) => ({ ...p, sidebar: true }))
+        }
         aria-label="Open menu"
       >
         <span className="hamburger__bar" />
