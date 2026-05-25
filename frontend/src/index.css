@@ -648,6 +648,20 @@ button {
   text-align: left;
   transition: background 0.2s, color 0.2s;
 }
+
+.sidebar__menu-btn--active-custom {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(41, 121, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar__menu-btn--active-custom:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  color: #fff !important;
+}
 .sidebar__menu-btn:hover { background: var(--bg-card); color: var(--text-primary); }
 .sidebar__menu-btn--active { background: var(--accent-green); color: var(--text-inverse); font-weight: 700; }
 .sidebar__menu-btn--active:hover { background: var(--accent-green-dim); color: var(--text-inverse); }
