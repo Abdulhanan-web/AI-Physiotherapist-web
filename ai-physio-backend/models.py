@@ -84,3 +84,21 @@ class HealthReport(Base):
     report_path = Column(String)
 
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WearableData(Base):
+    __tablename__ = "wearable_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    steps = Column(Integer, default=0)
+
+    calories = Column(Integer, default=0)
+
+    heart_rate = Column(Integer, default=0)
+
+    distance = Column(Integer, default=0)
+
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now())

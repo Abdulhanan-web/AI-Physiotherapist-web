@@ -11,6 +11,7 @@ from typing import List
 from dotenv import load_dotenv
 import os
 import random
+import time
 from datetime import datetime, timedelta
 import re
 from fastapi.responses import FileResponse
@@ -1448,3 +1449,104 @@ def generate_nutrition_plan(
         "meals": data.get("meals", []),
         "nutrients": data.get("nutrients", {})
     }
+
+
+@app.post("/google-fit/connect")
+def connect_google_fit(
+    data: schemas.GoogleFitToken,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    # ---------------- AUTH ----------------
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # ---------------- GOOGLE FIT REQUEST ----------------
+    headers = {
+        "Authorization": f"Bearer {data.access_token}"
+    }
+
+    # ✅ SAFE TIME RANGE (last 7 days only)
+    now = int(time.time() * 1000)
+    seven_days_ago = now - (7 * 24 * 60 * 60 * 1000)
+
+    body = {
+        "aggregateBy": [
+            {
+                "dataTypeName": "com.google.step_count.delta"
+            }
+        ],
+        "bucketByTime": {
+            "durationMillis": 86400000  # 1 day
+        },
+        "startTimeMillis": seven_days_ago,
+        "endTimeMillis": now
+    }
+
+    steps_url = "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate"
+
+    response = http_requests.post(
+        steps_url,
+        headers=headers,
+        json=body
+    )
+
+    # ---------------- DEBUG ----------------
+    print("GOOGLE FIT STATUS:", response.status_code)
+    print("GOOGLE FIT RESPONSE:", response.text)
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Google Fit API failed: {response.text}"
+        )
+
+    fit_data = response.json()
+
+    # ---------------- PARSE STEPS ----------------
+    total_steps = 0
+
+    for bucket in fit_data.get("bucket", []):
+        for dataset in bucket.get("dataset", []):
+            for point in dataset.get("point", []):
+                values = point.get("value", [])
+                if values:
+                    total_steps += values[0].get("intVal", 0)
+
+    # ---------------- SAVE TO DB ----------------
+    wearable = models.WearableData(
+        user_id=user.id,
+        steps=total_steps
+    )
+
+    db.add(wearable)
+    db.commit()
+
+    return {
+        "message": "Google Fit connected successfully",
+        "steps": total_steps
+    }
+
+@app.get("/wearable-stats")
+def wearable_stats(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+
+    email = get_current_user(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    data = db.query(models.WearableData).filter(
+        models.WearableData.user_id == user.id
+    ).all()
+
+    return data
