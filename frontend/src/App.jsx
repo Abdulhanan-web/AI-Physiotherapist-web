@@ -17,6 +17,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+console.log("Google Client ID:", GOOGLE_CLIENT_ID);
+
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" replace />;

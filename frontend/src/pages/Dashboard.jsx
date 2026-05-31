@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { specialtyPrograms } from "../data/specialtyPrograms";
+import GoogleFitConnect from "./GoogleFitConnect";
 import AppSidebar from "../components/AppSidebar";
 
 const exercises = [
@@ -95,6 +96,7 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
+        <GoogleFitConnect />
 
         {/* Exercise Grid */}
         <section style={{ marginTop: 40 }}>
