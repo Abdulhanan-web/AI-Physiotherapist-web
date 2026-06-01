@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, Boolean, Float
 from database import Base
 
 
@@ -37,7 +37,7 @@ class ExerciseSession(Base):
 
     calories_burned = Column(Integer, default=0)
 
-    avg_accuracy = Column(Integer, default=0)
+    avg_accuracy = Column(Float, default=0.0) 
 
     fitness_level = Column(String, default="Beginner")
 

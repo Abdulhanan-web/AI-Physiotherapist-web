@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
@@ -75,6 +77,11 @@ def validate_password(password: str):
 # ---------------- AUTH ROUTES ----------------
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print("❌ 422 VALIDATION ERROR:", exc.errors())
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -293,7 +300,7 @@ async def update_score(score_data: schemas.ExerciseScore, token: str = Depends(o
 
     # Calculate exercise score: ((sets * reps) * 5) + (avg_accuracy * 2) + 50
     exercise_score = int(((score_data.sets * score_data.reps) * 5) + (score_data.avg_accuracy * 2) + 50)
-    
+
     # Update user's total score
     user.total_score += exercise_score
     db.commit()
@@ -409,6 +416,8 @@ async def complete_exercise(
     - If no previous session: start streak at 1
     - If last session was < 24 hours ago: increment streak
     - If last session was >= 24 hours ago: reset streak to 1
+
+    Returns full session summary for the post-session report.
     """
     email = get_current_user(token)
     if not email:
@@ -420,15 +429,16 @@ async def complete_exercise(
 
     # Record the exercise session
     session = models.ExerciseSession(
-    user_id=user.id,
-    exercise_name=completion_data.exercise_name,
-    duration_minutes=completion_data.duration_minutes,
-    calories_burned=completion_data.calories_burned,
-    avg_accuracy=completion_data.avg_accuracy,
-    fitness_level=completion_data.fitness_level
+        user_id=user.id,
+        exercise_name=completion_data.exercise_name,
+        duration_minutes=completion_data.duration_minutes,
+        calories_burned=completion_data.calories_burned,
+        avg_accuracy=completion_data.avg_accuracy,
+        fitness_level=completion_data.fitness_level
     )
     db.add(session)
     db.commit()
+    db.refresh(session)
 
     # Get or create streak record
     streak = db.query(models.ExerciseStreak).filter(
@@ -473,6 +483,11 @@ async def complete_exercise(
     return {
         "exercise": completion_data.exercise_name,
         "current_streak": streak.current_streak,
+        "duration_minutes": session.duration_minutes,
+        "calories_burned": session.calories_burned,
+        "avg_accuracy": session.avg_accuracy,
+        "fitness_level": session.fitness_level,
+        "completed_at": session.completed_at,
         "message": f"Great! Your {completion_data.exercise_name} streak is now {streak.current_streak} day(s)!"
     }
 
@@ -948,9 +963,6 @@ def generate_report_data(
     }
 
 
-
-
-
 @app.get("/generate-report/{report_type}")
 def generate_report(
     report_type: str,
@@ -1353,7 +1365,7 @@ def generate_report(
             status_code=500,
             detail="PDF generation failed"
         )
-    
+
     # ---------------- SAVE REPORT ----------------
 
     report = models.HealthReport(
