@@ -101,5 +101,5 @@ class MealPlanResponse(BaseModel):
     diet_type: str
     meals: list
 
-class GoogleFitToken(BaseModel):
-    access_token: str
+class GoogleFitCode(BaseModel):
+    code: str

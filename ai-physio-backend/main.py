@@ -12,6 +12,7 @@ import numpy as np
 from typing import List
 from dotenv import load_dotenv
 import os
+from scheduler import start_scheduler
 import random
 import time
 from datetime import datetime, timedelta
@@ -34,13 +35,23 @@ from email_utils import send_reset_email, send_verification_email
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from models import UserVerification
+from google_fit_service import (
+    get_valid_access_token,
+    fetch_fitness_data
+)
 from auth import get_current_user
 import requests as http_requests
 
 basedir = os.path.dirname(__file__)
 load_dotenv(os.path.join(basedir, ".env"))
 
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 SPOONACULAR_API_KEY = os.getenv("SPOONACULAR_API_KEY")
+
+print("CLIENT ID:", GOOGLE_CLIENT_ID  is not None)
+print("SECRET EXISTS:", GOOGLE_CLIENT_SECRET is not None)
 
 # Create database tables automatically on startup
 models.Base.metadata.create_all(bind=engine)
@@ -1465,11 +1476,10 @@ def generate_nutrition_plan(
 
 @app.post("/google-fit/connect")
 def connect_google_fit(
-    data: schemas.GoogleFitToken,
+    data: schemas.GoogleFitCode,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    # ---------------- AUTH ----------------
     email = get_current_user(token)
 
     user = db.query(models.User).filter(
@@ -1477,76 +1487,73 @@ def connect_google_fit(
     ).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # ---------------- GOOGLE FIT REQUEST ----------------
-    headers = {
-        "Authorization": f"Bearer {data.access_token}"
-    }
-
-    # ✅ SAFE TIME RANGE (last 7 days only)
-    now = int(time.time() * 1000)
-    seven_days_ago = now - (7 * 24 * 60 * 60 * 1000)
-
-    body = {
-        "aggregateBy": [
-            {
-                "dataTypeName": "com.google.step_count.delta"
-            }
-        ],
-        "bucketByTime": {
-            "durationMillis": 86400000  # 1 day
-        },
-        "startTimeMillis": seven_days_ago,
-        "endTimeMillis": now
-    }
-
-    steps_url = "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate"
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
     response = http_requests.post(
-        steps_url,
-        headers=headers,
-        json=body
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "code": data.code,
+            "grant_type": "authorization_code",
+            "redirect_uri": "http://localhost:5173"
+        }
     )
-
-    # ---------------- DEBUG ----------------
-    print("GOOGLE FIT STATUS:", response.status_code)
-    print("GOOGLE FIT RESPONSE:", response.text)
 
     if response.status_code != 200:
         raise HTTPException(
             status_code=400,
-            detail=f"Google Fit API failed: {response.text}"
+            detail=response.text
         )
 
-    fit_data = response.json()
+    tokens = response.json()
 
-    # ---------------- PARSE STEPS ----------------
-    total_steps = 0
+    access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
+    expires_in = tokens.get("expires_in", 3600)
 
-    for bucket in fit_data.get("bucket", []):
-        for dataset in bucket.get("dataset", []):
-            for point in dataset.get("point", []):
-                values = point.get("value", [])
-                if values:
-                    total_steps += values[0].get("intVal", 0)
-
-    # ---------------- SAVE TO DB ----------------
-    wearable = models.WearableData(
-        user_id=user.id,
-        steps=total_steps
+    expires_at = datetime.utcnow() + timedelta(
+        seconds=expires_in
     )
 
-    db.add(wearable)
+    connection = db.query(
+        models.GoogleFitConnection
+    ).filter(
+        models.GoogleFitConnection.user_id == user.id
+    ).first()
+
+    if connection:
+
+        connection.access_token = access_token
+
+        if refresh_token:
+            connection.refresh_token = refresh_token
+
+        connection.expires_at = expires_at
+
+    else:
+
+        connection = models.GoogleFitConnection(
+            user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_at=expires_at
+        )
+
+        db.add(connection)
+
     db.commit()
 
     return {
-        "message": "Google Fit connected successfully",
-        "steps": total_steps
+        "message": "Google Fit connected successfully"
     }
 
-@app.get("/wearable-stats")
-def wearable_stats(
+
+@app.get("/wearable/refresh")
+def refresh_wearable_data(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
@@ -1557,8 +1564,70 @@ def wearable_stats(
         models.User.email == email
     ).first()
 
-    data = db.query(models.WearableData).filter(
-        models.WearableData.user_id == user.id
-    ).all()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
-    return data
+    access_token = get_valid_access_token(
+        db,
+        user.id
+    )
+
+    if not access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Google Fit not connected"
+        )
+
+    data = fetch_fitness_data(
+        access_token
+    )
+
+    today = datetime.utcnow().date()
+
+    record = db.query(
+        models.WearableData
+    ).filter(
+        models.WearableData.user_id == user.id,
+        models.WearableData.date == today
+    ).first()
+
+    if record:
+
+        record.steps = data["steps"]
+        record.calories = data["calories"]
+        record.distance = data["distance"]
+        record.heart_rate = data["heart_rate"]
+
+    else:
+
+        record = models.WearableData(
+            user_id=user.id,
+            date=today,
+            steps=data["steps"],
+            calories=data["calories"],
+            distance=data["distance"],
+            heart_rate=data["heart_rate"]
+        )
+
+        db.add(record)
+
+    db.commit()
+    db.refresh(record)
+
+    return {
+        "steps": record.steps,
+        "calories": record.calories,
+        "distance": record.distance,
+        "heart_rate": record.heart_rate
+    }
+
+
+@app.on_event("startup")
+def startup_event():
+
+    start_scheduler()
+
+    print("Google Fit Scheduler Started")
