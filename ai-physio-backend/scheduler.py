@@ -107,7 +107,7 @@ def start_scheduler():
         scheduler.add_job(
             sync_google_fit,
             trigger="interval",
-            seconds=30,
+            minutes=30,
             id="google_fit_sync",
             replace_existing=True
         )

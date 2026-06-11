@@ -6,6 +6,48 @@ import { useAuth } from "../context/AuthContext";
 import { specialtyPrograms } from "../data/specialtyPrograms";
 import GoogleFitConnect from "./GoogleFitConnect";
 import AppSidebar from "../components/AppSidebar";
+import ExerciseModelCard from "../components/ExerciseModelCard";
+
+
+const exerciseModels = [
+  {
+    title: "Elbow Flexion Left",
+    model: "elbow_flexion_left.glb",
+  },
+  {
+    title: "Elbow Flexion Right",
+    model: "elbow_flexion_right.glb",
+  },
+  {
+    title: "Shoulder Flexion Left",
+    model: "shoulder_flexion_left.glb",
+  },
+  {
+    title: "Shoulder Flexion Right",
+    model: "shoulder_flexion_right.glb",
+  },
+  {
+    title: "Shoulder Abduction Left",
+    model: "shoulder_abduction_left.glb",
+  },
+  {
+    title: "Shoulder Abduction Right",
+    model: "shoulder_abduction_right.glb",
+  },
+  {
+    title: "Shoulder Forward Elevation",
+    model: "shoulder_forward_elevation.glb",
+  },
+  {
+    title: "Side Tap Left",
+    model: "side_tap_left.glb",
+  },
+  {
+    title: "Side Tap Right",
+    model: "side_tap_right.glb",
+  },
+];
+
 
 const exercises = [
   "Elbow Flexion Left",
@@ -130,8 +172,8 @@ const ExpandedCardPortal = ({ name, streak, info, originRect, onClose, onStart }
   const streakClass = isBroken
     ? "streak-count--broken"
     : hasWarning
-    ? "streak-count--warn"
-    : "streak-count--ok";
+      ? "streak-count--warn"
+      : "streak-count--ok";
 
   // Animate in on mount
   useEffect(() => {
@@ -182,9 +224,8 @@ const ExpandedCardPortal = ({ name, streak, info, originRect, onClose, onStart }
     zIndex: 10000,
     transform: isOpen
       ? "translate(-50%, -50%) scale(1)"
-      : `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${
-          originRect.width / Math.min(520, vw - 32)
-        })`,
+      : `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${originRect.width / Math.min(520, vw - 32)
+      })`,
     transformOrigin: "center center",
     transition: isOpen
       ? "transform 0.42s cubic-bezier(0.34,1.18,0.64,1), box-shadow 0.4s ease, opacity 0.3s ease"
@@ -329,8 +370,8 @@ const ExerciseCard = ({ name, streak, onStart }) => {
   const streakClass = isBroken
     ? "streak-count--broken"
     : hasWarning
-    ? "streak-count--warn"
-    : "streak-count--ok";
+      ? "streak-count--warn"
+      : "streak-count--ok";
 
   const handleClick = () => {
     if (cardRef.current) {
@@ -469,10 +510,51 @@ const Dashboard = () => {
             Click any exercise card to view details and begin your session
           </p>
 
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginTop: 28,
+              gap: 20,
+            }}
+          >
             <div className="stat-card">
-              <div className="stat-card__label">Total Score</div>
-              <div className="stat-card__value">{loading ? "…" : totalScore}</div>
+              <div className="stat-card__label">
+                Total Score
+              </div>
+
+              <div className="stat-card__value">
+                {loading ? "…" : totalScore}
+              </div>
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                marginTop: 20,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))",
+                  gap: 20,
+                }}
+              >
+                {exerciseModels.map((item) => (
+                  <ExerciseModelCard
+                    key={item.title}
+                    model={item.model}
+                    title={item.title}
+                    onStart={() =>
+                      navigate(
+                        `/exercise/${encodeURIComponent(item.title)}`
+                      )
+                    }
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </header>
