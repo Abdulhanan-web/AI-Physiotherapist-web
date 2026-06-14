@@ -2,7 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { specialtyPrograms } from "../data/specialtyPrograms";
 import AppSidebar from "../components/AppSidebar";
+import AppNavbar from "../components/AppNavbar";
 
 const NutritionPlan = () => {
   const { token } = useAuth();
@@ -33,6 +35,9 @@ const NutritionPlan = () => {
 
   return (
     <div className="page">
+      <AppNavbar activePage="nutrition"
+      specialtyPrograms={specialtyPrograms}
+       />
       <AppSidebar activePage="nutrition" />
 
       <div className="nutrition-page" style={{ paddingTop: "72px" }}>

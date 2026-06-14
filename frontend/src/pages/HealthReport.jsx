@@ -6,7 +6,9 @@ import {
 } from "recharts";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { specialtyPrograms } from "../data/specialtyPrograms";
 import AppSidebar from "../components/AppSidebar";
+import AppNavbar from "../components/AppNavbar";
 
 const HealthReport = () => {
   const { type } = useParams();
@@ -64,6 +66,9 @@ const HealthReport = () => {
   return (
     <div className="page">
       <AppSidebar activePage="report" />
+      <AppNavbar activePage="report" 
+      specialtyPrograms={specialtyPrograms}
+      />
 
       <div className="report-page" style={{ paddingTop: "72px" }}>
 

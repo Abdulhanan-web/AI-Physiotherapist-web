@@ -1,3 +1,4 @@
+//pages/GoogleFitConnect.jsx
 import { useGoogleLogin } from "@react-oauth/google";
 
 const GoogleFitConnect = () => {

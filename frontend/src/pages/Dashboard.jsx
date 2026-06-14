@@ -4,8 +4,8 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { specialtyPrograms } from "../data/specialtyPrograms";
-import GoogleFitConnect from "./GoogleFitConnect";
 import AppSidebar from "../components/AppSidebar";
+import AppNavbar from "../components/AppNavbar";
 import ExerciseModelCard from "../components/ExerciseModelCard";
 
 
@@ -500,16 +500,93 @@ const Dashboard = () => {
 
   return (
     <div className="page">
+      <AppNavbar
+        activePage="dashboard"
+        specialtyPrograms={specialtyPrograms}
+      />
       <AppSidebar activePage="dashboard" />
+      {/* Hero Banner */}
+      <div className="rp-hero">
+        <div className="rp-hero-bg"></div>
+        <div className="rp-hero-pattern"></div>
+
+        <div className="rp-hero-content">
+          <div className="rp-hero-tag">AI PHYSIOTHERAPIST AND HEALTH ASSISTANT</div>
+
+          <div className="rp-hero-h1">
+            Personalised Care.<br />
+            <em>Proven Results.</em>
+          </div>
+
+          <div className="rp-hero-sub">
+            Every recovery journey is unique. RehabPanel uses real-time AI pose
+            detection to guide you through clinically validated exercises.
+          </div>
+
+          <div className="rp-hero-cta">
+            <button className="rp-hero-btn">
+              Begin Your Recovery →
+            </button>
+
+            <button className="rp-hero-btn-outline">
+              How It Works
+            </button>
+          </div>
+        </div>
+
+        <div className="rp-hero-stats">
+          <div className="rp-hero-stat">
+            <div className="rp-hero-stat-val">{exercises.length}</div>
+            <div className="rp-hero-stat-label">EXERCISES</div>
+          </div>
+
+          <div className="rp-hero-stat">
+            <div className="rp-hero-stat-val">
+              {Object.keys(specialtyPrograms).length}
+            </div>
+            <div className="rp-hero-stat-label">PROGRAMS</div>
+          </div>
+
+          <div className="rp-hero-stat">
+            <div className="rp-hero-stat-val">AI</div>
+            <div className="rp-hero-stat-label">FEEDBACK</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Intro Strip */}
+      <div className="rp-intro">
+        <div className="rp-intro-text">
+          At RehabPanel, every exercise plan is personalised,
+          every session is AI-monitored, and every outcome is measurable.
+        </div>
+
+        <div className="rp-intro-quote">
+          Because healing isn't about temporary relief —
+          it's about restoring life to its fullest potential.
+        </div>
+      </div>
+
 
       <div className="page--app" style={{ paddingTop: "72px" }}>
         {/* Header */}
         <header className="dashboard-header">
-          <h1 className="page-title">Rehabilitation Control Panel</h1>
-          <p className="page-subtitle" style={{ marginTop: 8 }}>
-            Click any exercise card to view details and begin your session
-          </p>
+          <div className="rp-section">
+            <div className="rp-section-eyebrow-wrapper">
+              <div className="rp-section-eyebrow">
+                EXERCISE LIBRARY
+              </div>
+            </div>
 
+            <div className="rp-section-title">
+              Start your session today
+            </div>
+
+            <div className="rp-section-sub">
+              Choose from clinically validated rehabilitation exercises
+              with real-time AI form correction and streak tracking.
+            </div>
+          </div>
           <div
             style={{
               display: "flex",
@@ -519,15 +596,6 @@ const Dashboard = () => {
               gap: 20,
             }}
           >
-            <div className="stat-card">
-              <div className="stat-card__label">
-                Total Score
-              </div>
-
-              <div className="stat-card__value">
-                {loading ? "…" : totalScore}
-              </div>
-            </div>
 
             <div
               style={{
@@ -558,22 +626,6 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
-
-        <GoogleFitConnect />
-
-        {/* Exercise Grid */}
-        <section style={{ marginTop: 40 }}>
-          <div className="grid--auto">
-            {exercises.map((ex) => (
-              <ExerciseCard
-                key={ex}
-                name={ex}
-                streak={getStreakDisplay(ex)}
-                onStart={(name) => navigate(`/exercise/${encodeURIComponent(name)}`)}
-              />
-            ))}
-          </div>
-        </section>
 
         {/* Specialty Section */}
         <section className="specialty-section">
@@ -607,6 +659,7 @@ const Dashboard = () => {
         </section>
       </div>
     </div>
+
   );
 };
 

@@ -1,3 +1,4 @@
+// components/ExerciseModelCard.jsx
 import { Canvas, useThree } from "@react-three/fiber";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import { useEffect, useRef } from "react";

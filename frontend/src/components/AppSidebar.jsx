@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const SidebarBtn = ({ icon, label, onClick, danger, active }) => (
   <button
@@ -27,6 +28,21 @@ const AppSidebar = ({ activePage }) => {
     sidebar: false,
     reportDropdown: false,
   });
+
+  const [theme, setTheme] = useState(
+    localStorage.getItem("theme") || "dark"
+  );
+
+  useEffect(() => {
+    document.body.className = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) =>
+      prev === "dark" ? "light" : "dark"
+    );
+  };
 
   const menuRef = useRef(null);
 
@@ -88,6 +104,48 @@ const AppSidebar = ({ activePage }) => {
     navigate(`/report/${type}`);
   };
 
+  const connectGoogleFit = useGoogleLogin({
+  flow: "auth-code",
+
+  scope:
+    "https://www.googleapis.com/auth/fitness.activity.read " +
+    "https://www.googleapis.com/auth/fitness.body.read " +
+    "https://www.googleapis.com/auth/fitness.heart_rate.read " +
+    "https://www.googleapis.com/auth/fitness.location.read " +
+    "openid profile email",
+
+  prompt: "consent",
+
+  onSuccess: async (codeResponse) => {
+    try {
+      const res = await fetch(
+        "http://localhost:8000/google-fit/connect",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            code: codeResponse.code,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      console.log(data);
+
+      closeMenu();
+    } catch (err) {
+      console.error(err);
+    }
+  },
+
+  onError: () => {
+    console.log("Google Fit connection failed");
+  },
+});
+
   return (
     <>
       {/* Overlay */}
@@ -147,11 +205,10 @@ const AppSidebar = ({ activePage }) => {
           {/* Generate Health Report */}
           <div style={{ position: "relative" }}>
             <button
-              className={`sidebar__menu-btn ${
-                activePage === "report"
+              className={`sidebar__menu-btn ${activePage === "report"
                   ? "sidebar__menu-btn--active-custom"
                   : ""
-              }`}
+                }`}
               onClick={() =>
                 setMenuOpen((p) => ({
                   ...p,
@@ -236,6 +293,22 @@ const AppSidebar = ({ activePage }) => {
               closeMenu();
               navigate("/nutrition");
             }}
+          />
+          <SidebarBtn
+            icon="🏃"
+            label="Connect Google Fit"
+            onClick={() => connectGoogleFit()}
+          />
+
+          {/* Theme Toggle */}
+          <SidebarBtn
+            icon={theme === "dark" ? "☀️" : "🌙"}
+            label={
+              theme === "dark"
+                ? "Light Mode"
+                : "Dark Mode"
+            }
+            onClick={toggleTheme}
           />
         </nav>
 

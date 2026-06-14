@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
+import AppNavbar from "../components/AppNavbar";
+import AppSidebar from "../components/AppSidebar";
 import { specialtyPrograms } from "../data/specialtyPrograms";
 
 // Description + safe-practice steps for every specialty exercise
@@ -370,6 +372,7 @@ const ExpandedCardPortal = ({ exercise, info, originRect, onClose, onStart }) =>
 
   return createPortal(
     <>
+    
       <div style={backdropStyle} onClick={handleClose} />
 
       <div style={cardStyle}>
@@ -488,6 +491,11 @@ const SpecialtyExerciseCard = ({ exercise, onStart }) => {
 
   return (
     <>
+    <AppNavbar
+  activePage="program"
+  specialtyPrograms={specialtyPrograms}
+/>
+<AppSidebar activePage="program" />
       <div
         ref={cardRef}
         className="specialty-exercise-card"
