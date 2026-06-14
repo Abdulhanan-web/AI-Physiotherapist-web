@@ -573,14 +573,14 @@ const Dashboard = () => {
         <header className="dashboard-header">
           <div className="rp-section">
             <div className="exercise-divider">
-  <span className="exercise-divider__line"></span>
+              <span className="exercise-divider__line"></span>
 
-  <h2 className="exercise-divider__title">
-    EXERCISE LIBRARY
-  </h2>
+              <h2 className="exercise-divider__title">
+                EXERCISE LIBRARY
+              </h2>
 
-  <span className="exercise-divider__line"></span>
-</div>
+              <span className="exercise-divider__line"></span>
+            </div>
 
             <div className="rp-section-title">
               Start your session today
@@ -635,21 +635,21 @@ const Dashboard = () => {
         <section className="specialty-section">
           <div className="specialty-header">
 
-  <div className="exercise-divider">
-    <span className="exercise-divider__line"></span>
+            <div className="exercise-divider">
+              <span className="exercise-divider__line"></span>
 
-    <h2 className="exercise-divider__title">
-      SPECIALTY REHABILITATION
-    </h2>
+              <h2 className="exercise-divider__title">
+                SPECIALTY REHABILITATION
+              </h2>
 
-    <span className="exercise-divider__line"></span>
-  </div>
+              <span className="exercise-divider__line"></span>
+            </div>
 
-  <p className="specialty-header__subtitle">
-    Select your condition to access guided recovery programs.
-  </p>
+            <p className="specialty-header__subtitle">
+              Select your condition to access guided recovery programs.
+            </p>
 
-</div>
+          </div>
 
           <div className="grid--auto">
             {Object.keys(specialtyPrograms).map((condition) => (

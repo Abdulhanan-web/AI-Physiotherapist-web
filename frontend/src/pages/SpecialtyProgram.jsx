@@ -579,7 +579,7 @@ const SpecialtyProgram = () => {
         }}
       >
         <h1 className="page-title">Program Not Found</h1>
-        <button className="btn btn--ghost btn--sm" onClick={() => navigate("/")}>
+        <button className="btn btn--ghost btn--sm btn-back--mobile-only" onClick={() => navigate("/")}>
           ← Back to Dashboard
         </button>
       </div>
@@ -588,7 +588,7 @@ const SpecialtyProgram = () => {
 
   return (
     <div className="page specialty-page">
-      <button className="btn-back" onClick={() => navigate("/")}>
+      <button className="btn-back btn-back--mobile-only" onClick={() => navigate("/")}>
         ← Dashboard
       </button>
 

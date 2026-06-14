@@ -100,8 +100,8 @@
 body.light {
   /* Surfaces */
   --bg-base:        #F8F6F0;
-  --bg-surface:     #FFFFFF;
-  --bg-card:        #FFFFFF;
+  --bg-surface:     #ffffff;
+  --bg-card:        #f4f4f3;
   --bg-card-hover:  #F0EDE6;
   --bg-input:       #FFFFFF;
   --bg-menu:        #FFFFFF;
@@ -140,7 +140,7 @@ body.light {
   --intro-border:   #F5C518;
 
   /* Cards (light) */
-  --card-surface:   #FFFFFF;
+  --card-surface:   #ffffff;
   --card-white:     #FFFFFF;
   --card-white-txt: #111827;
 
@@ -1242,6 +1242,14 @@ body:not(.light) .specialty-section h2.section-title {
     .sidebar-overlay{
         display:none;
     }
+
+    .btn-back--mobile-only {
+    display: none;
+  }
+
+  .specialty-page .page-title {
+    margin-top: 70px;
+  }
 
 }
 .program-menu {
