@@ -568,15 +568,19 @@ const Dashboard = () => {
       </div>
 
 
-      <div className="page--app" style={{ paddingTop: "72px" }}>
+      <div className="page--app" style={{ paddingTop: "20px" }}>
         {/* Header */}
         <header className="dashboard-header">
           <div className="rp-section">
-            <div className="rp-section-eyebrow-wrapper">
-              <div className="rp-section-eyebrow">
-                EXERCISE LIBRARY
-              </div>
-            </div>
+            <div className="exercise-divider">
+  <span className="exercise-divider__line"></span>
+
+  <h2 className="exercise-divider__title">
+    EXERCISE LIBRARY
+  </h2>
+
+  <span className="exercise-divider__line"></span>
+</div>
 
             <div className="rp-section-title">
               Start your session today
@@ -629,14 +633,23 @@ const Dashboard = () => {
 
         {/* Specialty Section */}
         <section className="specialty-section">
-          <div style={{ marginBottom: 28 }}>
-            <h2 className="section-title" style={{ color: "var(--accent-yellow)" }}>
-              Specialty Rehabilitation
-            </h2>
-            <p className="page-subtitle" style={{ marginTop: 8 }}>
-              Select your condition to access guided recovery programs.
-            </p>
-          </div>
+          <div className="specialty-header">
+
+  <div className="exercise-divider">
+    <span className="exercise-divider__line"></span>
+
+    <h2 className="exercise-divider__title">
+      SPECIALTY REHABILITATION
+    </h2>
+
+    <span className="exercise-divider__line"></span>
+  </div>
+
+  <p className="specialty-header__subtitle">
+    Select your condition to access guided recovery programs.
+  </p>
+
+</div>
 
           <div className="grid--auto">
             {Object.keys(specialtyPrograms).map((condition) => (

@@ -684,9 +684,9 @@ body.light .rp-hero-btn:hover { box-shadow: 0 8px 24px rgba(245,197,24,0.4); }
 /* ══════════════════════════════════════════════════════════
    SECTION LABELS
    ══════════════════════════════════════════════════════════ */
-.rp-section { 
+.rp-section {
   margin-bottom: 32px;
-  text-align: left;
+  text-align: center;
 }
 
 .rp-section-eyebrow {
@@ -697,7 +697,12 @@ body.light .rp-hero-btn:hover { box-shadow: 0 8px 24px rgba(245,197,24,0.4); }
   font-family: var(--font-display); font-size: 2rem; font-weight: 800;
   color: var(--text-primary); margin-bottom: 8px;
 }
-.rp-section-sub { color: var(--text-secondary); line-height: 1.7; max-width: 700px; }
+.rp-section-sub{
+    color:var(--text-secondary);
+    line-height:1.7;
+    max-width:700px;
+    margin:0 auto;
+}
 
 /* ══════════════════════════════════════════════════════════
    SIDEBAR / HAMBURGER
@@ -1245,4 +1250,79 @@ body:not(.light) .specialty-section h2.section-title {
 .program-dropdown button:hover {
   background: #eef4ff;
   color: #2979ff;
+}
+
+/* ==========================
+   Exercise Library Divider
+   ========================== */
+
+.exercise-divider{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+
+    width:100%;
+    margin:10px 0 18px;
+}
+
+.exercise-divider__line{
+    flex:1;
+    max-width:250px;
+    height:3px;
+
+    background:var(--accent-yellow);
+    border-radius:999px;
+}
+
+.exercise-divider__title{
+    font-family:var(--font-display);
+    font-size:2.5rem;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+
+    color:var(--accent-yellow);
+
+    text-shadow:0 2px 12px rgba(245,197,24,0.18);
+
+    white-space:nowrap;
+}
+
+.exercise-divider__line{
+    flex:1;
+    max-width:250px;
+    height:3px;
+
+    background:linear-gradient(
+        90deg,
+        transparent,
+        var(--accent-yellow),
+        transparent
+    );
+
+    border-radius:999px;
+}
+
+/* ==========================
+   Specialty Section Header
+   ========================== */
+
+.specialty-header{
+    text-align:center;
+    margin-bottom:40px;
+}
+
+.specialty-header__subtitle{
+    margin-top:14px;
+
+    color:var(--text-secondary);
+
+    font-size:1rem;
+    line-height:1.8;
+
+    max-width:700px;
+
+    margin-left:auto;
+    margin-right:auto;
 }
