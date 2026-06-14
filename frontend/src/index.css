@@ -1081,11 +1081,12 @@ body:not(.light) .specialty-section h2.section-title {
 
     padding:0 40px;
 
-    background:var(--bg-menu);
+    background: var(--bg-base);
 
     border-bottom:1px solid var(--border);
 
     z-index:999;
+    backdrop-filter: blur(10px);
 }
 
 .navbar-logo{
