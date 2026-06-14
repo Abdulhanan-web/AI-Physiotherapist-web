@@ -619,6 +619,7 @@ const Dashboard = () => {
                     key={item.title}
                     model={item.model}
                     title={item.title}
+                    streak={getStreakDisplay(item.title)}
                     onStart={() =>
                       navigate(
                         `/exercise/${encodeURIComponent(item.title)}`

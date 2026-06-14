@@ -37,22 +37,68 @@ function Avatar({ model }) {
   );
 }
 
-export default function ExerciseModelCard({ model, title, onStart }) {
+export default function ExerciseModelCard({ model, title, onStart, streak }) {
+  const s = streak || { count: 0, hasWarning: false, isBroken: false };
+
   return (
     <div
       style={{
-        background: "var(--bg-surface)",           // ← was "#fff"
+        background: "var(--bg-surface)",
         borderRadius: 16,
         padding: 15,
-        boxShadow: "var(--shadow-card)",         // ← was hardcoded rgba
-        border: "1px solid var(--border)",       // ← new: matches other cards
+        boxShadow: "var(--shadow-card)",
+        border: "1px solid var(--border)",
         transition: "background 0.3s, box-shadow 0.3s",
+        position: "relative",
       }}
     >
+      {/* ── Streak badge ── */}
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: "var(--bg-surface)",
+          border: "none",
+          borderBottomLeftRadius: 12,
+          padding: "4px 10px",
+          zIndex: 10,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontWeight: 550,
+            fontSize: "1.25rem",
+            color: "var(--text-primary)",
+            lineHeight: 1,
+          }}
+        >
+          {s.count}
+        </span>
+
+        <span
+          style={{
+            fontSize: "1rem",
+            filter: s.isBroken ? "grayscale(1) opacity(0.35)" : "none",
+          }}
+        >
+          🔥
+        </span>
+
+        {s.hasWarning && !s.isBroken && (
+          <span style={{ fontSize: "0.9rem" }}>⏳</span>
+        )}
+      </div>
+
+      {/* ── 3-D canvas ── */}
       <div
         style={{
           height: 250,
-          background: "var(--bg-card)",       // ← was "#f5f5f5"
+          background: "var(--bg-card)",
           borderRadius: 12,
           overflow: "hidden",
           transition: "background 0.3s",
@@ -74,7 +120,7 @@ export default function ExerciseModelCard({ model, title, onStart }) {
           marginTop: 15,
           marginBottom: 10,
           textAlign: "center",
-          color: "var(--text-primary)",          // ← was "#1a1f2e" (always dark)
+          color: "var(--text-primary)",
           fontFamily: "var(--font-display)",
           fontWeight: 700,
           transition: "color 0.3s",
@@ -84,9 +130,9 @@ export default function ExerciseModelCard({ model, title, onStart }) {
       </h3>
 
       <button
-        className="btn btn--primary"            // ← already correct class,
-        style={{ width: "100%" }}               //   but now the card bg no longer
-        onClick={onStart}                       //   fights it with a white override
+        className="btn btn--primary"
+        style={{ width: "100%" }}
+        onClick={onStart}
       >
         Start Exercise
       </button>
