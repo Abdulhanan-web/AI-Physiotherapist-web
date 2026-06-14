@@ -1,103 +1,153 @@
-from database import SessionLocal
-import models
-import auth
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import random
+from passlib.context import CryptContext
 
-db = SessionLocal()
-
-# ---------------- CREATE USER ----------------
-
-hashed_password = auth.get_password_hash("Test@123")
-
-user = models.User(
-    email="testuser@gmail.com",
-    hashed_password=hashed_password,
-    total_score=1200
+from database import SessionLocal
+from models import (
+    User,
+    UserProfile,
+    WearableData,
+    ExerciseSession,
+    ExerciseStreak,
+    GoogleFitConnection,
+    HealthReport,
 )
 
-db.add(user)
-db.commit()
-db.refresh(user)
+# --------------------------
+# Password Hashing
+# --------------------------
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-print("✅ User created")
+def hash_password(password: str):
+    return pwd_context.hash(password)
 
-# ---------------- CREATE PROFILE ----------------
 
-profile = models.UserProfile(
-    user_id=user.id,
-    full_name="Ali Raza",
-    age=24,
-    gender="Male",
-    height=175,
-    weight=72,
-    injury_type="Shoulder Injury",
-    fitness_goal="Muscle Recovery",
-    activity_level="Intermediate",
-    medical_history="Minor shoulder stiffness"
-)
+# --------------------------
+# Seed Script
+# --------------------------
+def seed_data():
+    db = SessionLocal()
 
-db.add(profile)
-db.commit()
+    try:
+        # ======================================================
+        # 1. Create User
+        # ======================================================
+        user = User(
+            email="testuser@example.com",
+            hashed_password=hash_password("Test@12345"),
+            total_score=1200
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-print("✅ Profile created")
+        # ======================================================
+        # 2. User Profile
+        # ======================================================
+        profile = UserProfile(
+            user_id=user.id,
+            full_name="Ali Raza",
+            age=25,
+            gender="Male",
+            height=175,
+            weight=70,
+            injury_type="Knee Pain",
+            fitness_goal="Weight Loss",
+            activity_level="Moderate",
+            medical_history="None"
+        )
+        db.add(profile)
 
-# ---------------- EXERCISE LIST ----------------
+        # ======================================================
+        # 3. Google Fit Connection
+        # ======================================================
+        fit = GoogleFitConnection(
+            user_id=user.id,
+            access_token="dummy_access_token",
+            refresh_token="dummy_refresh_token",
+            expires_at=datetime.utcnow() + timedelta(days=30),
+        )
+        db.add(fit)
 
-exercises = [
-    "Elbow Flexion Left",
-    "Shoulder Flexion Right",
-    "Side Tap Left",
-    "Cat-Cow Stretch",
-    "Bird Dog",
-]
+        # ======================================================
+        # 4. Generate 35 Days of Data
+        # ======================================================
+        start_date = date.today() - timedelta(days=35)
 
-fitness_levels = [
-    "Beginner",
-    "Intermediate",
-    "Advanced"
-]
+        streak = 0
 
-# ---------------- CREATE SESSIONS ----------------
+        for i in range(35):
+            current_date = start_date + timedelta(days=i)
 
-for i in range(30):
+            # Random wearable data
+            steps = random.randint(3000, 12000)
+            calories = round(steps * 0.04, 2)
+            distance = round(steps * 0.0008, 2)
+            heart_rate = random.randint(65, 150)
 
-    random_days = random.randint(0, 29)
+            wearable = WearableData(
+                user_id=user.id,
+                date=current_date,
+                steps=steps,
+                calories=calories,
+                distance=distance,
+                heart_rate=heart_rate,
+            )
+            db.add(wearable)
 
-    completed_date = datetime.utcnow() - timedelta(days=random_days)
+            # Exercise session (daily)
+            duration = random.randint(20, 90)
+            accuracy = round(random.uniform(60, 98), 2)
 
-    session = models.ExerciseSession(
-        user_id=user.id,
-        exercise_name=random.choice(exercises),
-        duration_minutes=random.randint(10, 60),
-        calories_burned=random.randint(50, 500),
-        avg_accuracy=random.randint(60, 100),
-        fitness_level=random.choice(fitness_levels),
-        completed_at=completed_date
-    )
+            session = ExerciseSession(
+                user_id=user.id,
+                exercise_name=random.choice([
+                    "Running",
+                    "Cycling",
+                    "Yoga",
+                    "Strength Training",
+                    "Walking"
+                ]),
+                completed_at=datetime.combine(current_date, datetime.min.time()),
+                duration_minutes=duration,
+                calories_burned=int(calories),
+                avg_accuracy=accuracy,
+                fitness_level=random.choice(["Beginner", "Intermediate", "Advanced"])
+            )
+            db.add(session)
 
-    db.add(session)
+            # Streak logic
+            streak += 1
+            streak_record = ExerciseStreak(
+                user_id=user.id,
+                exercise_name="General Fitness",
+                current_streak=streak,
+                last_completed_at=datetime.combine(current_date, datetime.min.time()),
+                is_broken=False
+            )
+            db.add(streak_record)
 
-db.commit()
+        # ======================================================
+        # 5. Health Reports (weekly)
+        # ======================================================
+        for i in range(5):
+            report = HealthReport(
+                user_id=user.id,
+                report_path=f"/reports/health_report_week_{i+1}.pdf",
+                generated_at=datetime.utcnow() - timedelta(days=i * 7)
+            )
+            db.add(report)
 
-print("✅ Exercise sessions created")
+        db.commit()
+        print("✅ Seed data inserted successfully!")
 
-# ---------------- CREATE STREAKS ----------------
+    except Exception as e:
+        db.rollback()
+        print("❌ Error:", e)
 
-for exercise in exercises:
+    finally:
+        db.close()
 
-    streak = models.ExerciseStreak(
-        user_id=user.id,
-        exercise_name=exercise,
-        current_streak=random.randint(1, 10),
-        last_completed_at=datetime.utcnow() - timedelta(hours=random.randint(1, 20)),
-        is_broken=False
-    )
 
-    db.add(streak)
-
-db.commit()
-
-print("✅ Streaks created")
-
-print("🎉 Dummy data inserted successfully")
+if __name__ == "__main__":
+    seed_data()

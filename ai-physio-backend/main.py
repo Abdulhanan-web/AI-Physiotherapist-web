@@ -797,6 +797,7 @@ def convert_to_api_diet(diet_type: str):
 
 
 
+
 @app.get("/generate-report-data/{report_type}")
 def generate_report_data(
     report_type: str,
@@ -804,596 +805,155 @@ def generate_report_data(
     db: Session = Depends(get_db)
 ):
 
-    # ---------------- AUTH ----------------
-
+    # ── AUTH ────────────────────────────────────────────────────────────────
     email = get_current_user(token)
-
     if not email:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token"
-        )
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    user = db.query(models.User).filter(
-        models.User.email == email
-    ).first()
-
+    user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=404, detail="User not found")
 
-    # ---------------- PROFILE ----------------
-
+    # ── PROFILE ─────────────────────────────────────────────────────────────
     profile = db.query(models.UserProfile).filter(
         models.UserProfile.user_id == user.id
     ).first()
-
     if not profile:
-        raise HTTPException(
-            status_code=400,
-            detail="Complete profile first"
-        )
+        raise HTTPException(status_code=400, detail="Complete profile first")
 
-    # ---------------- DATE RANGE ----------------
-
+    # ── DATE RANGE ──────────────────────────────────────────────────────────
     now = datetime.utcnow()
-
     if report_type == "weekly":
         start_date = now - timedelta(days=7)
-
     elif report_type == "monthly":
         start_date = now - timedelta(days=30)
-
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid report type"
-        )
+        raise HTTPException(status_code=400, detail="Invalid report type")
 
-    # ---------------- FETCH SESSIONS ----------------
-
+    # ── EXERCISE SESSIONS ───────────────────────────────────────────────────
     sessions = db.query(models.ExerciseSession).filter(
         models.ExerciseSession.user_id == user.id,
         models.ExerciseSession.completed_at >= start_date
     ).all()
 
     if not sessions:
-        raise HTTPException(
-            status_code=400,
-            detail="No exercise data found"
-        )
+        raise HTTPException(status_code=400, detail="No exercise data found")
 
-    # ---------------- GROUP DATA ----------------
-
-    grouped_sessions = group_sessions(
-        sessions,
-        report_type
-    )
+    # ── GROUPED DATA (existing behaviour) ───────────────────────────────────
+    grouped_sessions = group_sessions(sessions, report_type)
 
     report_data = []
-
     for period, items in grouped_sessions.items():
-
-        total_time = sum(
-            session.duration_minutes
-            for session in items
-        )
-
-        total_calories = sum(
-            session.calories_burned
-            for session in items
-        )
-
-        avg_accuracy = round(
-            sum(
-                session.avg_accuracy
-                for session in items
-            ) / len(items),
-            2
-        )
-
+        total_time     = sum(s.duration_minutes for s in items)
+        total_calories = sum(s.calories_burned for s in items)
+        avg_accuracy   = round(sum(s.avg_accuracy for s in items) / len(items), 2)
         report_data.append({
-
-            "period": period,
-
+            "period":         period,
             "exercise_count": len(items),
-
-            "time_spent": total_time,
-
-            "calories": total_calories,
-
-            "avg_accuracy": avg_accuracy
+            "time_spent":     total_time,
+            "calories":       total_calories,
+            "avg_accuracy":   avg_accuracy,
         })
 
-    # ---------------- STREAKS ----------------
+    # ── DAILY BREAKDOWN (new) ────────────────────────────────────────────────
+    # Group every session by calendar date (UTC)
+    daily_map = defaultdict(lambda: {
+        "exercise_count": 0,
+        "time_spent":     0,
+        "calories":       0,
+        "accuracy_sum":   0.0,
+    })
 
+    for s in sessions:
+        date_key = s.completed_at.strftime("%Y-%m-%d")
+        daily_map[date_key]["exercise_count"] += 1
+        daily_map[date_key]["time_spent"]     += s.duration_minutes
+        daily_map[date_key]["calories"]       += s.calories_burned
+        daily_map[date_key]["accuracy_sum"]   += s.avg_accuracy
+
+    daily_breakdown = []
+    for date_key in sorted(daily_map.keys()):
+        d = daily_map[date_key]
+        daily_breakdown.append({
+            "date":           date_key,
+            "exercise_count": d["exercise_count"],
+            "time_spent":     d["time_spent"],
+            "calories":       d["calories"],
+            "avg_accuracy":   round(d["accuracy_sum"] / d["exercise_count"], 2),
+        })
+
+    # ── EXERCISE TOTALS (new, for pie chart) ────────────────────────────────
+    exercise_counter = defaultdict(int)
+    for s in sessions:
+        exercise_counter[s.exercise_name] += 1
+
+    exercise_totals = [
+        {"exercise_name": name, "count": count}
+        for name, count in sorted(
+            exercise_counter.items(), key=lambda x: x[1], reverse=True
+        )
+    ]
+
+    # ── STREAKS ──────────────────────────────────────────────────────────────
     streaks = db.query(models.ExerciseStreak).filter(
         models.ExerciseStreak.user_id == user.id
     ).all()
 
-    # ---------------- AI RECOMMENDATION ----------------
+    # ── WEARABLE DATA (new) ──────────────────────────────────────────────────
+    wearable_rows = db.query(models.WearableData).filter(
+        models.WearableData.user_id == user.id,
+        models.WearableData.date    >= start_date.date()
+    ).order_by(models.WearableData.date).all()
 
-    if user.total_score < 500:
-        recommendation = "Increase rehabilitation consistency."
-    else:
-        recommendation = "Excellent rehabilitation progress."
+    wearable_daily = [
+        {
+            "date":       str(row.date),
+            "steps":      row.steps      or 0,
+            "calories":   row.calories   or 0.0,
+            "distance":   round(row.distance or 0.0, 3),
+            "heart_rate": round(row.heart_rate or 0.0, 1),
+        }
+        for row in wearable_rows
+    ]
 
-    # ---------------- RETURN JSON ----------------
+    # ── AI RECOMMENDATION ────────────────────────────────────────────────────
+    recommendation = (
+        "Increase rehabilitation consistency."
+        if user.total_score < 500
+        else "Excellent rehabilitation progress."
+    )
 
+    # ── RESPONSE ─────────────────────────────────────────────────────────────
     return {
-
         "user": {
-
-            "name": profile.full_name,
-
-            "age": profile.age,
-
-            "injury_type": profile.injury_type,
-
-            "fitness_goal": profile.fitness_goal,
-
+            "name":           profile.full_name,
+            "age":            profile.age,
+            "injury_type":    profile.injury_type,
+            "fitness_goal":   profile.fitness_goal,
             "activity_level": profile.activity_level,
-
-            "total_score": user.total_score
+            "total_score":    user.total_score,
         },
-
         "summary": {
-
-            "total_sessions": len(sessions),
-
-            "total_calories": sum(
-                s.calories_burned for s in sessions
+            "total_sessions":    len(sessions),
+            "total_calories":    sum(s.calories_burned  for s in sessions),
+            "total_minutes":     sum(s.duration_minutes for s in sessions),
+            "average_accuracy":  round(
+                sum(s.avg_accuracy for s in sessions) / len(sessions), 2
             ),
-
-            "total_minutes": sum(
-                s.duration_minutes for s in sessions
-            ),
-
-            "average_accuracy": round(
-                sum(s.avg_accuracy for s in sessions)
-                / len(sessions),
-                2
-            )
         },
-
+        # ── existing grouped data (used by accuracy & calories charts) ──
         "report_data": report_data,
-
+        # ── new fields ──
+        "daily_breakdown":  daily_breakdown,   # bar: exercises/day, time/day
+        "exercise_totals":  exercise_totals,   # pie: exercise distribution
+        "wearable_daily":   wearable_daily,    # steps, heart rate, distance
+        # ── streaks & recommendation (unchanged) ──
         "streaks": [
-
-            {
-                "exercise": s.exercise_name,
-                "days": s.current_streak
-            }
-
+            {"exercise": s.exercise_name, "days": s.current_streak}
             for s in streaks
         ],
-
-        "recommendation": recommendation
+        "recommendation": recommendation,
     }
-
-
-@app.get("/generate-report/{report_type}")
-def generate_report(
-    report_type: str,
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-):
-
-    # ---------------- AUTH ----------------
-
-    email = get_current_user(token)
-
-    if not email:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token"
-        )
-
-    user = db.query(models.User).filter(
-        models.User.email == email
-    ).first()
-
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
-
-    # ---------------- PROFILE ----------------
-
-    profile = db.query(models.UserProfile).filter(
-        models.UserProfile.user_id == user.id
-    ).first()
-
-    if not profile:
-        raise HTTPException(
-            status_code=400,
-            detail="Complete profile first"
-        )
-
-    # ---------------- DATE RANGE ----------------
-
-    now = datetime.utcnow()
-
-    if report_type == "weekly":
-        start_date = now - timedelta(days=7)
-
-    elif report_type == "monthly":
-        start_date = now - timedelta(days=30)
-
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid report type"
-        )
-
-    # ---------------- FETCH SESSIONS ----------------
-
-    sessions = db.query(models.ExerciseSession).filter(
-        models.ExerciseSession.user_id == user.id,
-        models.ExerciseSession.completed_at >= start_date
-    ).all()
-
-    if not sessions:
-        raise HTTPException(
-            status_code=400,
-            detail="No exercise data found for this report period"
-        )
-
-    # ---------------- GROUP SESSIONS ----------------
-
-    grouped_sessions = group_sessions(
-        sessions,
-        report_type
-    )
-
-    # ---------------- ANALYTICS DATA ----------------
-
-    report_data = []
-
-    for period, items in grouped_sessions.items():
-
-        exercise_names = [
-            session.exercise_name
-            for session in items
-        ]
-
-        total_time = sum(
-            session.duration_minutes
-            for session in items
-        )
-
-        total_calories = sum(
-            session.calories_burned
-            for session in items
-        )
-
-        avg_accuracy = round(
-            sum(
-                session.avg_accuracy
-                for session in items
-            ) / len(items),
-            2
-        )
-
-        fitness_level = items[-1].fitness_level
-
-        total_exercises = len(items)
-
-        report_data.append({
-            "period": period,
-            "exercises": ", ".join(exercise_names),
-            "exercise_count": total_exercises,
-            "time_spent": total_time,
-            "calories": total_calories,
-            "avg_accuracy": avg_accuracy,
-            "fitness_level": fitness_level
-        })
-
-    # ---------------- GET STREAKS ----------------
-
-    streaks = db.query(models.ExerciseStreak).filter(
-        models.ExerciseStreak.user_id == user.id
-    ).all()
-
-    # ---------------- CREATE REPORTS FOLDER ----------------
-
-    if not os.path.exists("reports"):
-        os.makedirs("reports")
-
-    # ---------------- CREATE CHART ----------------
-
-    chart_filename = f"chart_{user.id}.png"
-
-    chart_path = os.path.abspath(
-        os.path.join("reports", chart_filename)
-    )
-
-    labels = [
-        item["period"]
-        for item in report_data
-    ]
-
-    exercise_counts = [
-        item["exercise_count"]
-        for item in report_data
-    ]
-
-    avg_accuracy_data = [
-        item["avg_accuracy"]
-        for item in report_data
-    ]
-
-    calories_data = [
-        item["calories"]
-        for item in report_data
-    ]
-
-    plt.figure(figsize=(11, 5))
-
-    # Exercise activity line
-    plt.plot(
-        labels,
-        exercise_counts,
-        marker='o',
-        linewidth=3,
-        label="Exercises Performed"
-    )
-
-    # Accuracy line
-    plt.plot(
-        labels,
-        avg_accuracy_data,
-        marker='s',
-        linewidth=3,
-        label="Average Accuracy"
-    )
-
-    # Calories burned bars
-    plt.bar(
-        labels,
-        calories_data,
-        alpha=0.3,
-        label="Calories Burned"
-    )
-
-    plt.title(
-        f"{report_type.capitalize()} Rehabilitation Analytics",
-        fontsize=16,
-        fontweight='bold'
-    )
-
-    plt.xlabel("Period")
-    plt.ylabel("Performance Metrics")
-
-    plt.xticks(rotation=25)
-
-    plt.legend()
-
-    plt.grid(True, linestyle='--', alpha=0.5)
-
-    plt.tight_layout()
-
-    plt.savefig(chart_path)
-
-    plt.close()
-
-    # ---------------- CREATE PDF ----------------
-
-    report_filename = f"health_report_{user.id}.pdf"
-
-    report_path = os.path.abspath(
-        os.path.join("reports", report_filename)
-    )
-
-    doc = SimpleDocTemplate(report_path)
-
-    styles = getSampleStyleSheet()
-
-    elements = []
-
-    # ---------------- TITLE ----------------
-
-    elements.append(
-        Paragraph(
-            "AI Physiotherapy Health Report",
-            styles['Title']
-        )
-    )
-
-    elements.append(Spacer(1, 20))
-
-    # ---------------- USER INFO TABLE ----------------
-
-    user_data = [
-        ["Field", "Value"],
-        ["Full Name", profile.full_name],
-        ["Age", str(profile.age)],
-        ["Gender", profile.gender],
-        ["Injury Type", profile.injury_type],
-        ["Fitness Goal", profile.fitness_goal],
-        ["Activity Level", profile.activity_level],
-        ["Total Score", str(user.total_score)]
-    ]
-
-    table = Table(user_data, colWidths=[200, 300])
-
-    table.setStyle(TableStyle([
-
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
-
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-
-        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-
-        ('BOTTOMPADDING', (0,0), (-1,0), 12),
-
-    ]))
-
-    elements.append(table)
-
-    elements.append(Spacer(1, 30))
-
-    # ---------------- SESSION COUNT ----------------
-
-    elements.append(
-        Paragraph(
-            f"Total Exercise Sessions: {len(sessions)}",
-            styles['Heading2']
-        )
-    )
-
-    elements.append(Spacer(1, 20))
-
-    # ---------------- ANALYTICS TABLE ----------------
-
-    elements.append(
-        Paragraph(
-            f"{report_type.capitalize()} Rehabilitation Analytics",
-            styles['Heading2']
-        )
-    )
-
-    elements.append(Spacer(1, 15))
-
-    analytics_data = [[
-        "Period",
-        "Exercises",
-        "Time",
-        "Calories",
-        "Accuracy",
-        "Fitness"
-    ]]
-
-    for item in report_data:
-
-        analytics_data.append([
-
-            item["period"],
-
-            item["exercises"],
-
-            str(item["time_spent"]),
-
-            str(item["calories"]),
-
-            f"{item['avg_accuracy']}%",
-
-            item["fitness_level"]
-
-        ])
-
-    analytics_table = Table(
-        analytics_data,
-        colWidths=[90, 180, 70, 70, 80, 90]
-    )
-
-    analytics_table.setStyle(TableStyle([
-
-        ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
-
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-
-        ('FONTSIZE', (0,0), (-1,0), 10),
-
-        ('BOTTOMPADDING', (0,0), (-1,0), 12),
-
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-
-        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-
-        ('FONTSIZE', (0,1), (-1,-1), 9),
-
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-
-        ('ALIGN', (2,1), (4,-1), 'CENTER'),
-
-    ]))
-
-    elements.append(analytics_table)
-
-    elements.append(Spacer(1, 30))
-
-    # ---------------- STREAKS ----------------
-
-    elements.append(
-        Paragraph(
-            "Exercise Streaks",
-            styles['Heading2']
-        )
-    )
-
-    elements.append(Spacer(1, 10))
-
-    for streak in streaks:
-
-        elements.append(
-            Paragraph(
-                f"{streak.exercise_name}: {streak.current_streak} day streak",
-                styles['BodyText']
-            )
-        )
-
-    elements.append(Spacer(1, 30))
-
-    # ---------------- ADD CHART ----------------
-
-    elements.append(
-        Image(chart_path, width=450, height=250)
-    )
-
-    elements.append(Spacer(1, 30))
-
-    # ---------------- AI RECOMMENDATION ----------------
-
-    if user.total_score < 500:
-        recommendation = "Increase rehabilitation consistency."
-    else:
-        recommendation = "Excellent rehabilitation progress."
-
-    elements.append(
-        Paragraph(
-            f"AI Recommendation: {recommendation}",
-            styles['Heading2']
-        )
-    )
-
-    # ---------------- BUILD PDF ----------------
-
-    doc.build(elements)
-
-
-    if not os.path.exists(report_path):
-        raise HTTPException(
-            status_code=500,
-            detail="PDF generation failed"
-        )
-
-    # ---------------- SAVE REPORT ----------------
-
-    report = models.HealthReport(
-        user_id=user.id,
-        report_path=report_path
-    )
-
-    db.add(report)
-    db.commit()
-
-    # ---------------- RETURN PDF ----------------
-
-    return FileResponse(
-        path=report_path,
-        media_type="application/pdf",
-        filename=report_filename
-    )
 
 
 @app.get("/nutrition-plan")
