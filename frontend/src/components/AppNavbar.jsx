@@ -1,3 +1,4 @@
+//components/AppNavbar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -140,21 +141,25 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
             <div className="program-dropdown">
 
               <button
+                className="dropdown-item"
                 onClick={() => {
                   navigate("/report/weekly");
                   setReportMenu(false);
                 }}
               >
-                Weekly Report
+                <span>📅</span>
+                <span>Weekly Report</span>
               </button>
 
               <button
+                className="dropdown-item"
                 onClick={() => {
                   navigate("/report/monthly");
                   setReportMenu(false);
                 }}
               >
-                Monthly Report
+                <span>🗓️</span>
+                <span>Monthly Report</span>
               </button>
 
             </div>
@@ -176,28 +181,45 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
         {dropdown && (
           <div className="profile-dropdown">
 
-            <button onClick={() => navigate("/profile")}>
-              Update / Complete Profile
+            <button
+              className="dropdown-item"
+              onClick={() => navigate("/profile")}
+            >
+              <span>👤</span>
+              <span>Update Profile</span>
             </button>
 
-            <button onClick={() => connectGoogleFit()}>
-              Connect Google Fit
+            <button
+              className="dropdown-item"
+              onClick={() => connectGoogleFit()}
+            >
+              <span>🏃</span>
+              <span>Connect Google Fit</span>
             </button>
 
-            <button onClick={toggleTheme}>
-              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            <button
+              className="dropdown-item"
+              onClick={toggleTheme}
+            >
+              <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span>
+                {theme === "dark"
+                  ? "Light Mode"
+                  : "Dark Mode"}
+              </span>
             </button>
 
             <hr />
 
             <button
-              className="logout-btn"
+              className="dropdown-item logout-btn"
               onClick={() => {
                 logout();
                 navigate("/login");
               }}
             >
-              Logout
+              <span>🚪</span>
+              <span>Logout</span>
             </button>
 
           </div>

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AppSidebar from "../components/AppSidebar";
+import AppNavbar from "../components/AppNavbar";
+import { specialtyPrograms } from "../data/specialtyPrograms";
 
 const injuryOptions = [
   "Lower Back Pain", "Knee Recovery", "Left Stroke Recovery", "Right Stroke Recovery",
@@ -42,13 +44,13 @@ const ProfileSetup = () => {
           if (data.profile_completed && data.profile) {
             const p = data.profile;
             setFormData({
-              full_name:      p.full_name      || "",
-              age:            p.age            || "",
-              gender:         p.gender         || "",
-              height:         p.height         || "",
-              weight:         p.weight         || "",
-              injury_type:    p.injury_type    || "",
-              fitness_goal:   p.fitness_goal   || "",
+              full_name: p.full_name || "",
+              age: p.age || "",
+              gender: p.gender || "",
+              height: p.height || "",
+              weight: p.weight || "",
+              injury_type: p.injury_type || "",
+              fitness_goal: p.fitness_goal || "",
               activity_level: p.activity_level || "",
               medical_history: p.medical_history || "",
             });
@@ -94,6 +96,10 @@ const ProfileSetup = () => {
 
   return (
     <div className="page">
+      <AppNavbar
+        activePage="profile"
+        specialtyPrograms={specialtyPrograms}
+      />
       <AppSidebar activePage="profile" />
 
       <div className="profile-page" style={{ paddingTop: "72px" }}>
