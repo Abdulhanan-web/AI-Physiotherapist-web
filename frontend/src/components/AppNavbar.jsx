@@ -1,4 +1,3 @@
-//components/AppNavbar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +11,8 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
   const [programMenu, setProgramMenu] = useState(false);
   const [reportMenu, setReportMenu] = useState(false);
 
+  const [totalScore, setTotalScore] = useState(0);
+
   const [theme, setTheme] = useState(
     localStorage.getItem("theme") || "dark"
   );
@@ -20,13 +21,40 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
   const programRef = useRef(null);
   const reportRef = useRef(null);
 
-  // theme sync
+  // Theme sync
   useEffect(() => {
     document.body.className = theme;
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // outside click handler
+  // Fetch user score
+  useEffect(() => {
+    const fetchScore = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8000/user-score",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setTotalScore(data.total_score);
+        }
+      } catch (error) {
+        console.error("Failed to fetch score:", error);
+      }
+    };
+
+    if (token) {
+      fetchScore();
+    }
+  }, [token]);
+
+  // Outside click handler
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -43,7 +71,10 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
     };
 
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    return () => {
+      document.removeEventListener("mousedown", handler);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -62,18 +93,22 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
     prompt: "consent",
 
     onSuccess: async (codeResponse) => {
-      await fetch("http://localhost:8000/google-fit/connect", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          code: codeResponse.code,
-        }),
-      });
+      try {
+        await fetch("http://localhost:8000/google-fit/connect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            code: codeResponse.code,
+          }),
+        });
 
-      setDropdown(false);
+        setDropdown(false);
+      } catch (error) {
+        console.error("Google Fit connection failed:", error);
+      }
     },
   });
 
@@ -81,7 +116,10 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
     <header className="app-navbar">
 
       {/* LOGO */}
-      <div className="navbar-logo" onClick={() => navigate("/")}>
+      <div
+        className="navbar-logo"
+        onClick={() => navigate("/")}
+      >
         🏥 RehabPanel
       </div>
 
@@ -96,7 +134,10 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
         </button>
 
         {/* PROGRAMS DROPDOWN */}
-        <div className="program-menu" ref={programRef}>
+        <div
+          className="program-menu"
+          ref={programRef}
+        >
           <button
             className={activePage === "program" ? "nav-active" : ""}
             onClick={() => setProgramMenu((prev) => !prev)}
@@ -110,7 +151,9 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
                 <button
                   key={program}
                   onClick={() => {
-                    navigate(`/specialty/${encodeURIComponent(program)}`);
+                    navigate(
+                      `/specialty/${encodeURIComponent(program)}`
+                    );
                     setProgramMenu(false);
                   }}
                 >
@@ -128,8 +171,11 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
           Nutrition Plan
         </button>
 
-        {/* HEALTH REPORT DROPDOWN (NEW) */}
-        <div className="program-menu" ref={reportRef}>
+        {/* REPORT DROPDOWN */}
+        <div
+          className="program-menu"
+          ref={reportRef}
+        >
           <button
             className={activePage === "report" ? "nav-active" : ""}
             onClick={() => setReportMenu((prev) => !prev)}
@@ -169,7 +215,10 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
       </nav>
 
       {/* PROFILE */}
-      <div className="navbar-profile" ref={menuRef}>
+      <div
+        className="navbar-profile"
+        ref={menuRef}
+      >
 
         <button
           className="profile-btn"
@@ -180,6 +229,19 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
 
         {dropdown && (
           <div className="profile-dropdown">
+
+            {/* TOTAL SCORE */}
+            <div className="sidebar__score">
+              <span className="sidebar__score-label">
+                Total Score
+              </span>
+
+              <span className="sidebar__score-value">
+                {totalScore}
+              </span>
+            </div>
+
+            <div className="navbar-divider"></div>
 
             <button
               className="dropdown-item"
@@ -201,7 +263,10 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
               className="dropdown-item"
               onClick={toggleTheme}
             >
-              <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span>
+                {theme === "dark" ? "☀️" : "🌙"}
+              </span>
+
               <span>
                 {theme === "dark"
                   ? "Light Mode"
