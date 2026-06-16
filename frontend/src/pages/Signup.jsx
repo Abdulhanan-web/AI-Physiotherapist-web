@@ -97,11 +97,11 @@ const Signup = () => {
 
           <PasswordInput placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
+          <PasswordInput placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+
           <div className="password-hint">
             8+ chars · uppercase &amp; lowercase · number · special char (@$!%*?&amp;)
           </div>
-
-          <PasswordInput placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
 
           <button type="submit" className="btn btn--primary" disabled={loading} style={{ marginTop: 4 }}>
             {loading ? "Sending…" : "Sign Up"}
