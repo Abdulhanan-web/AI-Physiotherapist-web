@@ -518,7 +518,7 @@ body.light .btn--ghost:hover { background: rgba(26,58,92,0.05); }
 /* ══════════════════════════════════════════════════════════
    HERO BANNER
    ══════════════════════════════════════════════════════════ */
-.rp-hero {
+/*.rp-hero {
   position: relative;
   background: var(--hero-bg-from);
   overflow: hidden;
@@ -527,6 +527,53 @@ body.light .btn--ghost:hover { background: rgba(26,58,92,0.05); }
   align-items: flex-end;
   border-radius: 0;
   margin-bottom: 32px;
+}*/
+
+.rp-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 460px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 0;
+  margin-bottom: 32px;
+}
+
+.rp-hero-slides {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 400%;
+  animation: heroSlide 16s linear infinite;
+}
+
+.rp-hero-slides img {
+  width: 25%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  flex-shrink: 0;
+  filter: brightness(0.65);  /* blur + dim the images */
+  transform: scale(1);   
+}
+
+.rp-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+@keyframes heroSlide {
+  0%        { transform: translateX(0%); }
+  20%       { transform: translateX(0%); }
+  25%       { transform: translateX(-25%); }
+  45%       { transform: translateX(-25%); }
+  50%       { transform: translateX(-50%); }
+  70%       { transform: translateX(-50%); }
+  75%       { transform: translateX(-75%); }
+  95%       { transform: translateX(-75%); }
+  100%      { transform: translateX(-100%); }
 }
 
 .rp-hero-bg {

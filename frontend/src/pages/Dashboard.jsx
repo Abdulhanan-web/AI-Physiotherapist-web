@@ -507,8 +507,15 @@ const Dashboard = () => {
       <AppSidebar activePage="dashboard" />
       {/* Hero Banner */}
       <div className="rp-hero">
-        <div className="rp-hero-bg"></div>
-        <div className="rp-hero-pattern"></div>
+        {/* Sliding background images */} 
+        <div className="rp-hero-slides">
+          <img src="/images/image1.png" alt="" aria-hidden="true" />
+          <img src="/images/image2.png" alt="" aria-hidden="true" />
+          <img src="/images/image3.png" alt="" aria-hidden="true" />
+          <img src="/images/image4.png" alt="" aria-hidden="true" />
+        </div>
+        {/* <div className="rp-hero-bg"></div>
+        <div className="rp-hero-pattern"></div> */}
 
         <div className="rp-hero-content">
           <div className="rp-hero-tag">AI PHYSIOTHERAPIST AND HEALTH ASSISTANT</div>
