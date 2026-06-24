@@ -1,153 +1,235 @@
 from datetime import datetime, timedelta, date
 import random
-from passlib.context import CryptContext
 
 from database import SessionLocal
 from models import (
     User,
+    UserVerification,
     UserProfile,
-    WearableData,
     ExerciseSession,
     ExerciseStreak,
-    GoogleFitConnection,
     HealthReport,
+    WearableData,
+    GoogleFitConnection,
 )
+from auth import get_password_hash
 
-# --------------------------
-# Password Hashing
-# --------------------------
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+db = SessionLocal()
 
-def hash_password(password: str):
-    return pwd_context.hash(password)
+EXERCISES = [
+    "Elbow Flexion Left",
+    "Elbow Flexion Right",
+    "Shoulder Flexion Left",
+    "Shoulder Flexion Right",
+    "Shoulder Abduction Left",
+    "Shoulder Abduction Right",
+    "Shoulder Forward Elevation",
+    "Side Tap Left",
+    "Side Tap Right",
+]
 
+EMAIL = "demo@physio.com"
+PASSWORD = "Demo@123"
 
-# --------------------------
-# Seed Script
-# --------------------------
-def seed_data():
-    db = SessionLocal()
+try:
 
-    try:
-        # ======================================================
-        # 1. Create User
-        # ======================================================
-        user = User(
-            email="testuser@example.com",
-            hashed_password=hash_password("Test@12345"),
-            total_score=1200
-        )
-        db.add(user)
+    # ==========================================================
+    # Delete Existing Demo Data
+    # ==========================================================
+
+    existing_user = (
+        db.query(User)
+        .filter(User.email == EMAIL)
+        .first()
+    )
+
+    if existing_user:
+        db.query(ExerciseSession).filter(
+            ExerciseSession.user_id == existing_user.id
+        ).delete()
+
+        db.query(ExerciseStreak).filter(
+            ExerciseStreak.user_id == existing_user.id
+        ).delete()
+
+        db.query(UserProfile).filter(
+            UserProfile.user_id == existing_user.id
+        ).delete()
+
+        db.query(WearableData).filter(
+            WearableData.user_id == existing_user.id
+        ).delete()
+
+        db.query(HealthReport).filter(
+            HealthReport.user_id == existing_user.id
+        ).delete()
+
+        db.query(GoogleFitConnection).filter(
+            GoogleFitConnection.user_id == existing_user.id
+        ).delete()
+
+        db.query(User).filter(
+            User.id == existing_user.id
+        ).delete()
+
         db.commit()
-        db.refresh(user)
 
-        # ======================================================
-        # 2. User Profile
-        # ======================================================
-        profile = UserProfile(
+    db.query(UserVerification).filter(
+        UserVerification.email == EMAIL
+    ).delete()
+
+    db.commit()
+
+    # ==========================================================
+    # User
+    # ==========================================================
+
+    user = User(
+        email=EMAIL,
+        hashed_password=get_password_hash(PASSWORD),
+        total_score=1250,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    print(f"Created User ID: {user.id}")
+
+    # ==========================================================
+    # User Verification
+    # ==========================================================
+
+    verification = UserVerification(
+        email=EMAIL,
+        hashed_password=get_password_hash(PASSWORD),
+        code="123456",
+    )
+
+    db.add(verification)
+
+    # ==========================================================
+    # User Profile
+    # ==========================================================
+
+    profile = UserProfile(
+        user_id=user.id,
+        full_name="Demo Patient",
+        age=28,
+        gender="Male",
+        height=175,
+        weight=75,
+        injury_type="Shoulder Injury",
+        fitness_goal="Pain Reduction",
+        activity_level="Moderate",
+        medical_history="Previous shoulder strain",
+    )
+
+    db.add(profile)
+
+    # ==========================================================
+    # Exercise Streaks
+    # ==========================================================
+
+    for exercise in EXERCISES:
+        streak = ExerciseStreak(
             user_id=user.id,
-            full_name="Ali Raza",
-            age=25,
-            gender="Male",
-            height=175,
-            weight=70,
-            injury_type="Knee Pain",
-            fitness_goal="Weight Loss",
-            activity_level="Moderate",
-            medical_history="None"
+            exercise_name=exercise,
+            current_streak=random.randint(3, 20),
+            last_completed_at=datetime.utcnow(),
+            is_broken=False,
         )
-        db.add(profile)
 
-        # ======================================================
-        # 3. Google Fit Connection
-        # ======================================================
-        fit = GoogleFitConnection(
-            user_id=user.id,
-            access_token="dummy_access_token",
-            refresh_token="dummy_refresh_token",
-            expires_at=datetime.utcnow() + timedelta(days=30),
-        )
-        db.add(fit)
+        db.add(streak)
 
-        # ======================================================
-        # 4. Generate 35 Days of Data
-        # ======================================================
-        start_date = date.today() - timedelta(days=35)
+    # ==========================================================
+    # Exercise Sessions
+    # ==========================================================
 
-        streak = 0
+    for exercise in EXERCISES:
 
-        for i in range(35):
-            current_date = start_date + timedelta(days=i)
-
-            # Random wearable data
-            steps = random.randint(3000, 12000)
-            calories = round(steps * 0.04, 2)
-            distance = round(steps * 0.0008, 2)
-            heart_rate = random.randint(65, 150)
-
-            wearable = WearableData(
-                user_id=user.id,
-                date=current_date,
-                steps=steps,
-                calories=calories,
-                distance=distance,
-                heart_rate=heart_rate,
-            )
-            db.add(wearable)
-
-            # Exercise session (daily)
-            duration = random.randint(20, 90)
-            accuracy = round(random.uniform(60, 98), 2)
+        for i in range(5):
 
             session = ExerciseSession(
                 user_id=user.id,
-                exercise_name=random.choice([
-                    "Running",
-                    "Cycling",
-                    "Yoga",
-                    "Strength Training",
-                    "Walking"
-                ]),
-                completed_at=datetime.combine(current_date, datetime.min.time()),
-                duration_minutes=duration,
-                calories_burned=int(calories),
-                avg_accuracy=accuracy,
-                fitness_level=random.choice(["Beginner", "Intermediate", "Advanced"])
+                exercise_name=exercise,
+                completed_at=datetime.utcnow()
+                - timedelta(days=random.randint(0, 30)),
+                duration_minutes=random.randint(5, 20),
+                calories_burned=random.randint(20, 120),
+                avg_accuracy=round(
+                    random.uniform(75, 99), 2
+                ),
+                fitness_level=random.choice(
+                    [
+                        "Beginner",
+                        "Intermediate",
+                        "Advanced",
+                    ]
+                ),
             )
+
             db.add(session)
 
-            # Streak logic
-            streak += 1
-            streak_record = ExerciseStreak(
-                user_id=user.id,
-                exercise_name="General Fitness",
-                current_streak=streak,
-                last_completed_at=datetime.combine(current_date, datetime.min.time()),
-                is_broken=False
-            )
-            db.add(streak_record)
+    # ==========================================================
+    # Health Report
+    # ==========================================================
 
-        # ======================================================
-        # 5. Health Reports (weekly)
-        # ======================================================
-        for i in range(5):
-            report = HealthReport(
-                user_id=user.id,
-                report_path=f"/reports/health_report_week_{i+1}.pdf",
-                generated_at=datetime.utcnow() - timedelta(days=i * 7)
-            )
-            db.add(report)
+    report = HealthReport(
+        user_id=user.id,
+        report_path="reports/demo_report.pdf",
+    )
 
-        db.commit()
-        print("✅ Seed data inserted successfully!")
+    db.add(report)
 
-    except Exception as e:
-        db.rollback()
-        print("❌ Error:", e)
+    # ==========================================================
+    # Wearable Data (30 Days)
+    # ==========================================================
 
-    finally:
-        db.close()
+    for i in range(30):
 
+        wearable = WearableData(
+            user_id=user.id,
+            date=date.today() - timedelta(days=i),
+            steps=random.randint(3000, 15000),
+            calories=round(
+                random.uniform(180, 650), 2
+            ),
+            distance=round(
+                random.uniform(2.0, 12.0), 2
+            ),
+            heart_rate=round(
+                random.uniform(65, 95), 2
+            ),
+        )
 
-if __name__ == "__main__":
-    seed_data()
+        db.add(wearable)
+
+    # ==========================================================
+    # Google Fit Connection
+    # ==========================================================
+
+    google_fit = GoogleFitConnection(
+        user_id=user.id,
+        access_token="demo_access_token",
+        refresh_token="demo_refresh_token",
+        expires_at=datetime.utcnow() + timedelta(days=30),
+    )
+
+    db.add(google_fit)
+
+    db.commit()
+
+    print("===================================")
+    print("DATABASE SEEDED SUCCESSFULLY")
+    print("===================================")
+    print(f"Email    : {EMAIL}")
+    print(f"Password : {PASSWORD}")
+    print("===================================")
+
+except Exception as e:
+    db.rollback()
+    print("ERROR:", e)
+
+finally:
+    db.close()
