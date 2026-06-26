@@ -60,10 +60,109 @@ const getAIFeedback = (pct, name) => {
   return `Keep practicing ${name}. Review the technique and prioritise controlled, deliberate movements over speed.`;
 };
 
+// ─── Camera Error States ──────────────────────────────────────────────────────
+const CAMERA_STATES = {
+  INITIALIZING: "initializing",
+  READY: "ready",
+  ERROR_PERMISSION: "error_permission",
+  ERROR_NOT_FOUND: "error_not_found",
+  ERROR_MEDIAPIPE: "error_mediapipe",
+  ERROR_UNKNOWN: "error_unknown",
+};
+
+// ─── Camera Initializing Overlay ─────────────────────────────────────────────
+const CameraStatusOverlay = ({ state, onRetry }) => {
+  if (state === CAMERA_STATES.READY) return null;
+
+  const configs = {
+    [CAMERA_STATES.INITIALIZING]: {
+      icon: "📷",
+      title: "Initializing Camera",
+      desc: "Loading MediaPipe pose model and requesting camera access…",
+      showSpinner: true,
+      showRetry: false,
+    },
+    [CAMERA_STATES.ERROR_PERMISSION]: {
+      icon: "🔒",
+      title: "Camera Access Denied",
+      desc: "Please allow camera access in your browser settings and try again.",
+      showSpinner: false,
+      showRetry: true,
+    },
+    [CAMERA_STATES.ERROR_NOT_FOUND]: {
+      icon: "🚫",
+      title: "No Camera Found",
+      desc: "We couldn't detect a webcam. Please connect one and try again.",
+      showSpinner: false,
+      showRetry: true,
+    },
+    [CAMERA_STATES.ERROR_MEDIAPIPE]: {
+      icon: "⚠️",
+      title: "Model Load Failed",
+      desc: "Could not load the pose detection model. Check that /mediapipe/pose/ assets are served correctly.",
+      showSpinner: false,
+      showRetry: true,
+    },
+    [CAMERA_STATES.ERROR_UNKNOWN]: {
+      icon: "❌",
+      title: "Something Went Wrong",
+      desc: "An unexpected error occurred while starting the camera.",
+      showSpinner: false,
+      showRetry: true,
+    },
+  };
+
+  const cfg = configs[state] || configs[CAMERA_STATES.INITIALIZING];
+
+  return (
+    <div style={{
+      position: "absolute", inset: 0, zIndex: 20,
+      background: "rgba(10,15,30,0.96)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      gap: 16, padding: 24, textAlign: "center",
+    }}>
+      <div style={{ fontSize: "3rem" }}>{cfg.icon}</div>
+
+      <p style={{ margin: 0, fontWeight: 700, fontSize: "1.1rem", color: "#fff" }}>
+        {cfg.title}
+      </p>
+      <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", maxWidth: 320, lineHeight: 1.6 }}>
+        {cfg.desc}
+      </p>
+
+      {cfg.showSpinner && (
+        <div style={{
+          width: 36, height: 36,
+          border: "3px solid rgba(100,181,246,0.2)",
+          borderTop: "3px solid #64b5f6",
+          borderRadius: "50%",
+          animation: "spin 0.9s linear infinite",
+        }} />
+      )}
+
+      {cfg.showRetry && (
+        <button
+          onClick={onRetry}
+          style={{
+            marginTop: 8, padding: "10px 28px",
+            background: "linear-gradient(135deg,#1565c0,#0288d1)",
+            color: "#fff", border: "none", borderRadius: 50,
+            fontWeight: 700, fontSize: "0.9rem", cursor: "pointer",
+          }}
+        >
+          🔄 Retry
+        </button>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+};
+
 // ─── Post-session Report Overlay ─────────────────────────────────────────────
 const SessionReport = ({ report, onGoHome, onRetry }) => {
   const { exerciseName, sets, reps, avgAccuracy, caloriesBurned, durationMinutes, pointsEarned } = report;
-  // avgAccuracy here is the raw 0-1 value stored in state; multiply for display
   const accuracyPct = Math.round(avgAccuracy * 100);
   const { label: accLabel, color: accColor } = getAccuracyLabel(accuracyPct);
   const aiFeedback = getAIFeedback(accuracyPct, exerciseName);
@@ -218,19 +317,21 @@ const PoseDetection = ({ exerciseName }) => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const cameraRef = useRef(null);   // keep camera instance for retry cleanup
+  const poseRef = useRef(null);     // keep pose instance for retry cleanup
 
   const activeRule = EXERCISE_RULES[exerciseName] || EXERCISE_RULES["Elbow Flexion Left"];
 
   // ── refs that must survive across renders without causing re-renders ──
   const sequenceRef = useRef([]);
   const sessionStartRef = useRef(Date.now());
-  const accuracyValuesRef = useRef([]);   // SOURCE OF TRUTH for accuracy — never stale
+  const accuracyValuesRef = useRef([]);
   const stageRef = useRef("down");
   const holdStartRef = useRef(null);
   const hasCountedHoldRef = useRef(false);
   const isRestingRef = useRef(false);
   const currentSetRef = useRef(1);
-  const sessionDoneRef = useRef(false); // guard so submitSession fires exactly once
+  const sessionDoneRef = useRef(false);
 
   // ── React state (UI only) ──
   const [reps, setReps] = useState(0);
@@ -242,6 +343,10 @@ const PoseDetection = ({ exerciseName }) => {
   const [confidence, setConfidence] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [sessionReport, setSessionReport] = useState(null);
+
+  // ── NEW: camera initialisation state ──
+  const [cameraState, setCameraState] = useState(CAMERA_STATES.INITIALIZING);
+  const [retryKey, setRetryKey] = useState(0); // increment to re-run the effect
 
   useEffect(() => { currentSetRef.current = currentSet; }, [currentSet]);
 
@@ -267,136 +372,229 @@ const PoseDetection = ({ exerciseName }) => {
     return angle > 180 ? 360 - angle : angle;
   };
 
+  // ── Stop any running camera/pose cleanly ──
+  const stopCameraAndPose = () => {
+    try { cameraRef.current?.stop(); } catch (_) { }
+    try { poseRef.current?.close(); } catch (_) { }
+    cameraRef.current = null;
+    poseRef.current = null;
+
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
   // ── MediaPipe + Camera ──
   useEffect(() => {
+    // Guard: video element must be in the DOM
+    if (!videoRef.current) return;
+
+    // Reset status every time this effect runs (including on retry)
+    setCameraState(CAMERA_STATES.INITIALIZING);
     sessionStartRef.current = Date.now();
     accuracyValuesRef.current = [];
     sessionDoneRef.current = false;
 
-    const pose = new Pose({
-      locateFile: (file) => `/mediapipe/pose/${file}`,
-    });
-    pose.setOptions({
-      modelComplexity: 1, smoothLandmarks: true,
-      minDetectionConfidence: 0.5, minTrackingConfidence: 0.5,
-    });
+    // ── 1. Check browser camera support first ──
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState(CAMERA_STATES.ERROR_NOT_FOUND);
+      return;
+    }
 
-    const incrementRep = () => {
-      setReps((prev) => {
-        const next = prev + 1;
-        if (next >= activeRule.targetReps) {
-          if (currentSetRef.current >= activeRule.targetSets) {
-            // ── session finished — build report from refs (never stale) ──
-            if (!sessionDoneRef.current) {
-              sessionDoneRef.current = true;
-              buildAndSubmitReport();
-            }
-          } else {
-            setIsResting(true);
-            isRestingRef.current = true;
-            setRestTimeLeft(activeRule.restDuration);
-            setFeedback("Set Complete! Take a break.");
-          }
+    // ── 2. Proactively request permission so we surface the error early ──
+    let permissionAborted = false;
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        // Permission granted — stop this test stream immediately;
+        // MediaPipe Camera will open its own stream.
+        stream.getTracks().forEach((t) => t.stop());
+
+        if (permissionAborted) return;
+
+        // ── 3. Init MediaPipe Pose ──
+        let pose;
+        try {
+          pose = new Pose({
+            locateFile: (file) => `/mediapipe/pose/${file}`,
+          });
+        } catch (err) {
+          console.error("Pose constructor failed:", err);
+          setCameraState(CAMERA_STATES.ERROR_MEDIAPIPE);
+          return;
         }
-        return next;
-      });
-    };
 
-    pose.onResults(async (results) => {
-      if (!canvasRef.current) return;
-      const ctx = canvasRef.current.getContext("2d");
-      canvasRef.current.width = results.image.width;
-      canvasRef.current.height = results.image.height;
-      ctx.save();
-      ctx.translate(canvasRef.current.width, 0);
-      ctx.scale(-1, 1);
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      ctx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        poseRef.current = pose;
 
-      if (results.poseLandmarks) {
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: "#00e676", lineWidth: 2 });
-        drawLandmarks(ctx, results.poseLandmarks, { color: "#ff1744", radius: 2 });
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
 
-        if (!isRestingRef.current && !sessionDoneRef.current) {
-          const [p1, p2, p3] = activeRule.joints.map((i) => results.poseLandmarks[i]);
-          if (p1.visibility > 0.5 && p2.visibility > 0.5 && p3.visibility > 0.5) {
-            const angle = calculateAngle(p1, p2, p3);
-            const inAction = activeRule.type === "min" ? angle < activeRule.range.min : angle > activeRule.range.max;
-            const inRest = activeRule.type === "min" ? angle > activeRule.range.max : angle < activeRule.range.min;
+        // Surface MediaPipe model-load errors
+        // (MediaPipe doesn't expose a standard .catch, so we rely on the
+        //  onResults never firing as a secondary indicator handled below)
 
-            if (inRest) {
-              stageRef.current = "down";
-              holdStartRef.current = null;
-              hasCountedHoldRef.current = false;
-              setHoldProgress(0);
-            }
-            if (inAction && stageRef.current === "down") {
-              if (activeRule.holdTime) {
-                if (!holdStartRef.current) holdStartRef.current = Date.now();
-                const elapsed = Date.now() - holdStartRef.current;
-                setHoldProgress(Math.min((elapsed / activeRule.holdTime) * 100, 100));
-                if (elapsed >= activeRule.holdTime && !hasCountedHoldRef.current) {
-                  incrementRep();
-                  hasCountedHoldRef.current = true;
-                  stageRef.current = "up";
+        const incrementRep = () => {
+          setReps((prev) => {
+            const next = prev + 1;
+            if (next >= activeRule.targetReps) {
+              if (currentSetRef.current >= activeRule.targetSets) {
+                if (!sessionDoneRef.current) {
+                  sessionDoneRef.current = true;
+                  buildAndSubmitReport();
                 }
               } else {
-                incrementRep();
-                stageRef.current = "up";
+                setIsResting(true);
+                isRestingRef.current = true;
+                setRestTimeLeft(activeRule.restDuration);
+                setFeedback("Set Complete! Take a break.");
+              }
+            }
+            return next;
+          });
+        };
+
+        pose.onResults(async (results) => {
+          if (!canvasRef.current) return;
+
+          // Mark camera as ready on the very first results callback
+          setCameraState(CAMERA_STATES.READY);
+
+          const ctx = canvasRef.current.getContext("2d");
+          canvasRef.current.width = results.image.width;
+          canvasRef.current.height = results.image.height;
+          ctx.save();
+          ctx.translate(canvasRef.current.width, 0);
+          ctx.scale(-1, 1);
+          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          ctx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+          if (results.poseLandmarks) {
+            drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: "#00e676", lineWidth: 2 });
+            drawLandmarks(ctx, results.poseLandmarks, { color: "#ff1744", radius: 2 });
+
+            if (!isRestingRef.current && !sessionDoneRef.current) {
+              const [p1, p2, p3] = activeRule.joints.map((i) => results.poseLandmarks[i]);
+              if (p1.visibility > 0.5 && p2.visibility > 0.5 && p3.visibility > 0.5) {
+                const angle = calculateAngle(p1, p2, p3);
+                const inAction = activeRule.type === "min" ? angle < activeRule.range.min : angle > activeRule.range.max;
+                const inRest = activeRule.type === "min" ? angle > activeRule.range.max : angle < activeRule.range.min;
+
+                if (inRest) {
+                  stageRef.current = "down";
+                  holdStartRef.current = null;
+                  hasCountedHoldRef.current = false;
+                  setHoldProgress(0);
+                }
+                if (inAction && stageRef.current === "down") {
+                  if (activeRule.holdTime) {
+                    if (!holdStartRef.current) holdStartRef.current = Date.now();
+                    const elapsed = Date.now() - holdStartRef.current;
+                    setHoldProgress(Math.min((elapsed / activeRule.holdTime) * 100, 100));
+                    if (elapsed >= activeRule.holdTime && !hasCountedHoldRef.current) {
+                      incrementRep();
+                      hasCountedHoldRef.current = true;
+                      stageRef.current = "up";
+                    }
+                  } else {
+                    incrementRep();
+                    stageRef.current = "up";
+                  }
+                }
+              }
+
+              // Collect keypoints and send to ML model every 30 frames
+              const keypoints = results.poseLandmarks
+                .map((lm) => ({ ...lm, x: 1 - lm.x }))
+                .flatMap((j) => [j.x, j.y, j.z])
+                .slice(0, 75);
+              sequenceRef.current.push(keypoints);
+
+              if (sequenceRef.current.length === 30) {
+                const seq = [...sequenceRef.current];
+                sequenceRef.current = [];
+                fetch(`http://localhost:8000/predict/${exerciseName}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sequence: seq }),
+                })
+                  .then((r) => r.json())
+                  .then((d) => {
+                    setFeedback(d.correct ? "Good Form! ✅" : "Adjust your position ❌");
+                    setConfidence((d.confidence * 100).toFixed(1));
+                    accuracyValuesRef.current.push(parseFloat(d.confidence));
+                  })
+                  .catch(() => { });
               }
             }
           }
-
-          // Collect keypoints and send to ML model every 30 frames
-          const keypoints = results.poseLandmarks
-            .map((lm) => ({ ...lm, x: 1 - lm.x }))
-            .flatMap((j) => [j.x, j.y, j.z])
-            .slice(0, 75);
-          sequenceRef.current.push(keypoints);
-
-          if (sequenceRef.current.length === 30) {
-            const seq = [...sequenceRef.current];
-            sequenceRef.current = [];
-            fetch(`http://localhost:8000/predict/${exerciseName}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sequence: seq }),
-            })
-              .then((r) => r.json())
-              .then((d) => {
-                setFeedback(d.correct ? "Good Form! ✅" : "Adjust your position ❌");
-                setConfidence((d.confidence * 100).toFixed(1));
-                // ── push to ref, NOT state — always readable without stale-closure issues ──
-                accuracyValuesRef.current.push(parseFloat(d.confidence));
-              })
-              .catch(() => { });
-          }
-        }
-      }
-      ctx.restore();
-    });
-
-    const camera = new Camera(videoRef.current, {
-      onFrame: async () => { await pose.send({ image: videoRef.current }); },
-      width: 640, height: 480,
-    });
-    camera.start();
-    return () => {
-      camera.stop();
-
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject;
-
-        stream.getTracks().forEach((track) => {
-          track.stop();
+          ctx.restore();
         });
 
-        videoRef.current.srcObject = null;
-      }
+        // ── 4. Init Camera — only after video ref is confirmed ──
+        let camera;
+        try {
+          camera = new Camera(videoRef.current, {
+            onFrame: async () => {
+              // Only send a frame when the video element actually has data
+              if (
+                videoRef.current &&
+                videoRef.current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+              ) {
+                await pose.send({ image: videoRef.current });
+              }
+            },
+            width: 640,
+            height: 480,
+          });
+          cameraRef.current = camera;
+        } catch (err) {
+          console.error("Camera constructor failed:", err);
+          setCameraState(CAMERA_STATES.ERROR_UNKNOWN);
+          return;
+        }
 
-      pose.close();
+        // ── 5. Start camera with explicit error handling ──
+        camera.start()
+          .then(() => {
+            // Camera is streaming — onResults will flip state to READY
+            console.log("✅ Camera started successfully");
+          })
+          .catch((err) => {
+            console.error("❌ camera.start() error:", err);
+            const name = err?.name || "";
+            if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+              setCameraState(CAMERA_STATES.ERROR_PERMISSION);
+            } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+              setCameraState(CAMERA_STATES.ERROR_NOT_FOUND);
+            } else {
+              setCameraState(CAMERA_STATES.ERROR_UNKNOWN);
+            }
+          });
+      })
+      .catch((err) => {
+        if (permissionAborted) return;
+        console.error("❌ getUserMedia permission error:", err);
+        const name = err?.name || "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          setCameraState(CAMERA_STATES.ERROR_PERMISSION);
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          setCameraState(CAMERA_STATES.ERROR_NOT_FOUND);
+        } else {
+          setCameraState(CAMERA_STATES.ERROR_UNKNOWN);
+        }
+      });
+
+    return () => {
+      permissionAborted = true;
+      stopCameraAndPose();
     };
-  }, [exerciseName, activeRule]);
+    // retryKey is included so that clicking Retry re-runs this entire effect
+  }, [exerciseName, activeRule, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Build report + submit — reads from refs so values are always fresh ──
   const buildAndSubmitReport = () => {
@@ -412,19 +610,17 @@ const PoseDetection = ({ exerciseName }) => {
       ((activeRule.targetSets * totalReps) * 5) + (avgAccuracy * 100 * 2) + 50
     );
 
-    // Show the report overlay
     setSessionReport({
       exerciseName,
       sets: activeRule.targetSets,
       reps: totalReps,
-      avgAccuracy,       // raw 0-1; SessionReport multiplies ×100 for display
+      avgAccuracy,
       caloriesBurned,
       durationMinutes,
       pointsEarned,
     });
     setSessionComplete(true);
 
-    // Submit to backend
     submitSession(avgAccuracy, durationMinutes, caloriesBurned);
   };
 
@@ -436,7 +632,6 @@ const PoseDetection = ({ exerciseName }) => {
         return;
       }
 
-      // ── /update-score ──
       const scorePayload = {
         exercise_name: exerciseName,
         sets: activeRule.targetSets,
@@ -449,12 +644,11 @@ const PoseDetection = ({ exerciseName }) => {
         body: JSON.stringify(scorePayload),
       });
 
-      // ── /complete-exercise ──
       const sessionPayload = {
         exercise_name: exerciseName,
-        duration_minutes: parseInt(durationMinutes, 10),              // int
-        calories_burned: parseInt(caloriesBurned, 10),               // int
-        avg_accuracy: parseFloat((avgAccuracy * 100).toFixed(2)), // float, e.g. 73.45
+        duration_minutes: parseInt(durationMinutes, 10),
+        calories_burned: parseInt(caloriesBurned, 10),
+        avg_accuracy: parseFloat((avgAccuracy * 100).toFixed(2)),
         fitness_level: "Intermediate",
       };
       const res = await fetch("http://localhost:8000/complete-exercise", {
@@ -474,7 +668,14 @@ const PoseDetection = ({ exerciseName }) => {
     }
   };
 
-  // ── Retry: reset everything ──
+  // ── Retry camera — stop everything cleanly, then re-trigger the effect ──
+  const handleCameraRetry = () => {
+    stopCameraAndPose();
+    setCameraState(CAMERA_STATES.INITIALIZING);
+    setRetryKey((k) => k + 1);
+  };
+
+  // ── Retry exercise session (already working, now also resets camera state) ──
   const handleRetry = () => {
     setReps(0);
     setCurrentSet(1);
@@ -493,25 +694,39 @@ const PoseDetection = ({ exerciseName }) => {
     hasCountedHoldRef.current = false;
     currentSetRef.current = 1;
     sessionDoneRef.current = false;
+    // Also re-trigger the camera effect in case it failed
+    setCameraState(CAMERA_STATES.INITIALIZING);
+    setRetryKey((k) => k + 1);
   };
 
   // ── Render ──
   return (
     <div className="pose-container">
       <div className="pose-canvas-wrap" style={{ position: "relative" }}>
-        <video ref={videoRef} style={{ display: "none" }} />
+        <video ref={videoRef} style={{ display: "none" }} playsInline muted />
         <canvas
           ref={canvasRef}
           style={{
             width: "100%",
             height: "min(55vw, 520px)",
             display: "block",
+            // Keep blur only during rest; camera status overlay handles other states
             filter: isResting ? "blur(8px) brightness(0.4)" : "none",
+            // Prevent a white flash while canvas is 0×0 before first frame
+            background: "#0a0f1e",
           }}
         />
 
+        {/* Camera status overlay (initializing / errors) — hidden once READY */}
+        {!sessionComplete && (
+          <CameraStatusOverlay
+            state={cameraState}
+            onRetry={handleCameraRetry}
+          />
+        )}
+
         {/* Rest overlay */}
-        {isResting && (
+        {isResting && cameraState === CAMERA_STATES.READY && (
           <div style={{
             position: "absolute", inset: 0, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center", color: "#fff", zIndex: 10,
