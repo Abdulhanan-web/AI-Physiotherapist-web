@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useGoogleLogin } from "@react-oauth/google";
+import logo from "../assets/logo.png";
 
 const SidebarBtn = ({ icon, label, onClick, danger, active }) => (
   <button
@@ -105,46 +106,46 @@ const AppSidebar = ({ activePage }) => {
   };
 
   const connectGoogleFit = useGoogleLogin({
-  flow: "auth-code",
+    flow: "auth-code",
 
-  scope:
-    "https://www.googleapis.com/auth/fitness.activity.read " +
-    "https://www.googleapis.com/auth/fitness.body.read " +
-    "https://www.googleapis.com/auth/fitness.heart_rate.read " +
-    "https://www.googleapis.com/auth/fitness.location.read " +
-    "openid profile email",
+    scope:
+      "https://www.googleapis.com/auth/fitness.activity.read " +
+      "https://www.googleapis.com/auth/fitness.body.read " +
+      "https://www.googleapis.com/auth/fitness.heart_rate.read " +
+      "https://www.googleapis.com/auth/fitness.location.read " +
+      "openid profile email",
 
-  prompt: "consent",
+    prompt: "consent",
 
-  onSuccess: async (codeResponse) => {
-    try {
-      const res = await fetch(
-        "http://localhost:8000/google-fit/connect",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            code: codeResponse.code,
-          }),
-        }
-      );
+    onSuccess: async (codeResponse) => {
+      try {
+        const res = await fetch(
+          "http://localhost:8000/google-fit/connect",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              code: codeResponse.code,
+            }),
+          }
+        );
 
-      const data = await res.json();
-      console.log(data);
+        const data = await res.json();
+        console.log(data);
 
-      closeMenu();
-    } catch (err) {
-      console.error(err);
-    }
-  },
+        closeMenu();
+      } catch (err) {
+        console.error(err);
+      }
+    },
 
-  onError: () => {
-    console.log("Google Fit connection failed");
-  },
-});
+    onError: () => {
+      console.log("Google Fit connection failed");
+    },
+  });
 
   return (
     <>
@@ -169,8 +170,14 @@ const AppSidebar = ({ activePage }) => {
       >
         <div className="sidebar__header">
           <div className="sidebar__brand">
-            <div className="sidebar__brand-icon">🏥</div>
-            <span className="sidebar__brand-name">RehabPanel</span>
+            <img
+              src={logo}
+              alt="RehabPanel Logo"
+              className="sidebar-logo"
+            />
+            <span className="sidebar__brand-name">
+              RehabPanel
+            </span>
           </div>
           <button
             className="sidebar__close"
@@ -206,8 +213,8 @@ const AppSidebar = ({ activePage }) => {
           <div style={{ position: "relative" }}>
             <button
               className={`sidebar__menu-btn ${activePage === "report"
-                  ? "sidebar__menu-btn--active-custom"
-                  : ""
+                ? "sidebar__menu-btn--active-custom"
+                : ""
                 }`}
               onClick={() =>
                 setMenuOpen((p) => ({

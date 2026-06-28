@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useGoogleLogin } from "@react-oauth/google";
+import logo from "../assets/logo.png";
 
 const AppNavbar = ({ activePage, specialtyPrograms }) => {
   const navigate = useNavigate();
@@ -121,7 +122,8 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
         className="navbar-logo"
         onClick={() => navigate("/")}
       >
-        🏥 RehabPanel
+        <img src={logo} alt="RehabPanel Logo" className="logo-img" />
+        <span>RehabPanel</span>
       </div>
 
       {/* CENTER NAV */}

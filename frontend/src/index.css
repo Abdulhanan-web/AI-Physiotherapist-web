@@ -777,6 +777,19 @@ body.light .hamburger:hover { box-shadow: 0 0 0 3px rgba(26,58,92,0.1); }
   background: var(--text-primary); border-radius: 2px;
 }
 
+.sidebar__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 10px;
+}
+
 .sidebar-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
@@ -808,7 +821,7 @@ body.light .hamburger:hover { box-shadow: 0 0 0 3px rgba(26,58,92,0.1); }
   display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
 .sidebar__brand-name {
-  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.3rem;
   color: var(--text-primary);
 }
 
@@ -1114,6 +1127,22 @@ body.light .sidebar__menu-btn--active-custom {
 /* Streak section title override for specialty */
 body:not(.light) .specialty-section h2.section-title {
   color: var(--accent-yellow);
+}
+
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.logo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 10px;
 }
 
 .app-navbar{
