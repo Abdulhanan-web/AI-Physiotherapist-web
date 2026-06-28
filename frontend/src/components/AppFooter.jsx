@@ -10,7 +10,7 @@ const AppFooter = () => {
 
         {/* Description */}
         <div className="footer-section">
-          <h3>RehabPanel</h3>
+          <h3>SpineSense</h3>
 
           <p>
             AI Physiotherapist & Health Assistant that provides
@@ -44,7 +44,7 @@ const AppFooter = () => {
           <h4>Support</h4>
 
           <p>Email</p>
-          <p>support@rehabpanel.com</p>
+          <p>support@spinesense.com</p>
 
           <p style={{ marginTop: "12px" }}>
             Version 1.0
@@ -56,7 +56,7 @@ const AppFooter = () => {
       <div className="footer-divider"></div>
 
       <div className="footer-disclaimer">
-        <strong>Disclaimer:</strong> RehabPanel is an AI-assisted rehabilitation
+        <strong>Disclaimer:</strong> SpineSense is an AI-assisted rehabilitation
         platform intended for educational and supportive purposes only. It is
         not a substitute for professional medical advice, diagnosis, or
         treatment. Always consult a qualified healthcare professional before
@@ -64,7 +64,7 @@ const AppFooter = () => {
       </div>
 
       <div className="footer-bottom">
-        © 2026 RehabPanel • AI Physiotherapist & Health Assistant • Final Year Project
+        © 2026 SpineSense • AI Physiotherapist & Health Assistant • Final Year Project
       </div>
     </footer>
   );

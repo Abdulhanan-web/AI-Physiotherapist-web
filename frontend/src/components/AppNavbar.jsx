@@ -122,8 +122,8 @@ const AppNavbar = ({ activePage, specialtyPrograms }) => {
         className="navbar-logo"
         onClick={() => navigate("/")}
       >
-        <img src={logo} alt="RehabPanel Logo" className="logo-img" />
-        <span>RehabPanel</span>
+        <img src={logo} alt="SpineSense Logo" className="logo-img" />
+        <span>SpineSense</span>
       </div>
 
       {/* CENTER NAV */}

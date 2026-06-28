@@ -364,7 +364,7 @@ const Dashboard = () => {
       {/* Intro Strip */}
       <div className="rp-intro">
         <div className="rp-intro-text">
-          At RehabPanel, every exercise plan is personalised,
+          At SpineSense, every exercise plan is personalised,
           every session is AI-monitored, and every outcome is measurable.
         </div>
 
