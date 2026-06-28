@@ -4,166 +4,14 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { specialtyPrograms } from "../data/specialtyPrograms";
+import exerciseModels from "../data/exerciseModels";
+import EXERCISE_INFO from "../data/exerciseInfo";
+import exercises from "../data/exercises";
 import AppSidebar from "../components/AppSidebar";
 import AppNavbar from "../components/AppNavbar";
 import HeroSection from "../components/HeroSection";
 import ExerciseModelCard from "../components/ExerciseModelCard";
 import AppFooter from "../components/AppFooter";
-
-
-const exerciseModels = [
-  {
-    title: "Elbow Flexion Left",
-    model: "elbow_flexion_left.glb",
-  },
-  {
-    title: "Elbow Flexion Right",
-    model: "elbow_flexion_right.glb",
-  },
-  {
-    title: "Shoulder Flexion Left",
-    model: "shoulder_flexion_left.glb",
-  },
-  {
-    title: "Shoulder Flexion Right",
-    model: "shoulder_flexion_right.glb",
-  },
-  {
-    title: "Shoulder Abduction Left",
-    model: "shoulder_abduction_left.glb",
-  },
-  {
-    title: "Shoulder Abduction Right",
-    model: "shoulder_abduction_right.glb",
-  },
-  {
-    title: "Shoulder Forward Elevation",
-    model: "shoulder_forward_elevation.glb",
-  },
-  {
-    title: "Side Tap Left",
-    model: "side_tap_left.glb",
-  },
-  {
-    title: "Side Tap Right",
-    model: "side_tap_right.glb",
-  },
-];
-
-
-const exercises = [
-  "Elbow Flexion Left",
-  "Elbow Flexion Right",
-  "Shoulder Flexion Left",
-  "Shoulder Flexion Right",
-  "Shoulder Abduction Left",
-  "Shoulder Abduction Right",
-  "Shoulder Forward Elevation",
-  "Side Tap Left",
-  "Side Tap Right",
-];
-
-const EXERCISE_INFO = {
-  "Elbow Flexion Left": {
-    description:
-      "Builds bicep strength and restores elbow range of motion on the left side. Ideal for post-injury rehabilitation of the elbow joint.",
-    steps: [
-      "Stand or sit upright with your left arm at your side, palm facing forward.",
-      "Keeping your elbow close to your torso, slowly curl your forearm upward.",
-      "Pause at the top when your forearm is nearly vertical — avoid swinging your shoulder.",
-      "Lower the arm back down in a controlled, slow motion (3–4 seconds).",
-      "Stop if you feel sharp pain; mild muscle fatigue is normal.",
-    ],
-  },
-  "Elbow Flexion Right": {
-    description:
-      "Builds bicep strength and restores elbow range of motion on the right side. Mirror exercise of the left for balanced rehabilitation.",
-    steps: [
-      "Stand or sit upright with your right arm at your side, palm facing forward.",
-      "Keeping your elbow close to your torso, slowly curl your forearm upward.",
-      "Pause at the top when your forearm is nearly vertical — avoid swinging your shoulder.",
-      "Lower the arm back down in a controlled, slow motion (3–4 seconds).",
-      "Stop if you feel sharp pain; mild muscle fatigue is normal.",
-    ],
-  },
-  "Shoulder Flexion Left": {
-    description:
-      "Improves shoulder mobility and anterior deltoid strength on the left side. Commonly prescribed after rotator cuff injuries.",
-    steps: [
-      "Stand tall with your left arm straight at your side, thumb pointing forward.",
-      "Slowly raise your arm in front of you to shoulder height or as high as comfortable.",
-      "Hold for 1–2 seconds at the top; do not shrug your shoulder upward.",
-      "Lower slowly back to the starting position.",
-      "Keep your core engaged and avoid leaning your torso back.",
-    ],
-  },
-  "Shoulder Flexion Right": {
-    description:
-      "Improves shoulder mobility and anterior deltoid strength on the right side. Mirror exercise for balanced shoulder rehabilitation.",
-    steps: [
-      "Stand tall with your right arm straight at your side, thumb pointing forward.",
-      "Slowly raise your arm in front of you to shoulder height or as high as comfortable.",
-      "Hold for 1–2 seconds at the top; do not shrug your shoulder upward.",
-      "Lower slowly back to the starting position.",
-      "Keep your core engaged and avoid leaning your torso back.",
-    ],
-  },
-  "Shoulder Abduction Left": {
-    description:
-      "Strengthens the middle deltoid and supraspinatus. Restores sideways lifting capacity of the left shoulder after injury or surgery.",
-    steps: [
-      "Stand with your left arm at your side, palm facing inward.",
-      "Slowly raise your arm out to the side, leading with your elbow slightly bent.",
-      "Stop at 90° (shoulder height) unless your physiotherapist has cleared you for higher.",
-      "Hold the position for 3 seconds, then lower slowly.",
-      "Avoid tilting your head or hiking your shoulder — movement should be isolated.",
-    ],
-  },
-  "Shoulder Abduction Right": {
-    description:
-      "Strengthens the middle deltoid and supraspinatus on the right side for balanced upper-body rehabilitation.",
-    steps: [
-      "Stand with your right arm at your side, palm facing inward.",
-      "Slowly raise your arm out to the side, leading with your elbow slightly bent.",
-      "Stop at 90° (shoulder height) unless your physiotherapist has cleared you for higher.",
-      "Hold the position for 3 seconds, then lower slowly.",
-      "Avoid tilting your head or hiking your shoulder — movement should be isolated.",
-    ],
-  },
-  "Shoulder Forward Elevation": {
-    description:
-      "Full-range anterior shoulder mobility exercise. Helps recover overhead reach and targets the anterior deltoid and upper trapezius.",
-    steps: [
-      "Stand upright, arm straight at your side with thumb pointing up.",
-      "Raise your arm forward and upward in a smooth arc toward the ceiling.",
-      "Go as high as comfortable — aim for full overhead reach over time.",
-      "Hold at the top for 2 seconds with a relaxed shoulder blade.",
-      "Lower in a slow, controlled motion and repeat.",
-    ],
-  },
-  "Side Tap Left": {
-    description:
-      "A low-impact balance and coordination drill that activates the left hip abductor and improves lateral stability.",
-    steps: [
-      "Stand with feet hip-width apart, hands lightly resting on a surface if needed for balance.",
-      "Shift your weight onto your right foot and tap your left foot out to the side.",
-      "Return the left foot back to centre with control — don't let it drop.",
-      "Keep your torso upright; avoid leaning sideways.",
-      "Perform at a steady, rhythmic pace rather than rushing.",
-    ],
-  },
-  "Side Tap Right": {
-    description:
-      "A low-impact balance and coordination drill that activates the right hip abductor and improves lateral stability.",
-    steps: [
-      "Stand with feet hip-width apart, hands lightly resting on a surface if needed for balance.",
-      "Shift your weight onto your left foot and tap your right foot out to the side.",
-      "Return the right foot back to centre with control — don't let it drop.",
-      "Keep your torso upright; avoid leaning sideways.",
-      "Perform at a steady, rhythmic pace rather than rushing.",
-    ],
-  },
-};
 
 // ─── Portal-based expanded card overlay ──────────────────────────────────────
 const ExpandedCardPortal = ({ name, streak, info, originRect, onClose, onStart }) => {
@@ -578,11 +426,11 @@ const Dashboard = () => {
                     key={item.title}
                     model={item.model}
                     title={item.title}
+                    description={EXERCISE_INFO[item.title]?.description}
+                    steps={EXERCISE_INFO[item.title]?.steps}
                     streak={getStreakDisplay(item.title)}
                     onStart={() =>
-                      navigate(
-                        `/exercise/${encodeURIComponent(item.title)}`
-                      )
+                      navigate(`/exercise/${encodeURIComponent(item.title)}`)
                     }
                   />
                 ))}
