@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { specialtyPrograms } from "../data/specialtyPrograms";
 import AppSidebar from "../components/AppSidebar";
 import AppNavbar from "../components/AppNavbar";
+import AppFooter from "../components/AppFooter";
 
 const NutritionPlan = () => {
   const { token } = useAuth();
@@ -90,6 +91,7 @@ const NutritionPlan = () => {
           ))}
         </div>
       </div>
+      <AppFooter />
     </div>
   );
 };

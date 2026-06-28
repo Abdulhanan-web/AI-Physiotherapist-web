@@ -1546,9 +1546,17 @@ body:not(.light) .specialty-section h2.section-title {
 .app-footer{
     margin-top:70px;
     padding:50px 8% 25px;
-    border-top:1px solid var(--border-color);
-    background:var(--bg-primary);
+
+    border-top:1px solid var(--border);
+    background:var(--bg-base);
+
     color:var(--text-primary);
+}
+
+.footer-divider{
+    height:1px;
+    background:var(--border);
+    margin:35px 0 20px;
 }
 
 .footer-grid{
@@ -1587,11 +1595,7 @@ body:not(.light) .specialty-section h2.section-title {
     color:#4f8cff;
 }
 
-.footer-divider{
-    height:1px;
-    background:var(--border-color);
-    margin:35px 0 20px;
-}
+
 
 .footer-disclaimer{
     color:var(--text-secondary);

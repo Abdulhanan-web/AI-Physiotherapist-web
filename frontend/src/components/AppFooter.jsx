@@ -1,3 +1,4 @@
+//components/AppFooter.jsx
 import { useNavigate } from "react-router-dom";
 
 const AppFooter = () => {

@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import AppNavbar from "../components/AppNavbar";
 import AppSidebar from "../components/AppSidebar";
 import { specialtyPrograms } from "../data/specialtyPrograms";
+import AppFooter from "../components/AppFooter";
 
 // Description + safe-practice steps for every specialty exercise
 const SPECIALTY_EXERCISE_INFO = {
@@ -587,6 +588,7 @@ const SpecialtyProgram = () => {
   }
 
   return (
+    <div>
     <div className="page specialty-page">
       <button className="btn-back btn-back--mobile-only" onClick={() => navigate("/")}>
         ← Dashboard
@@ -616,6 +618,8 @@ const SpecialtyProgram = () => {
           </div>
         </div>
       ))}
+    </div>
+    <AppFooter />
     </div>
   );
 };

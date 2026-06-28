@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { specialtyPrograms } from "../data/specialtyPrograms";
 import AppSidebar from "../components/AppSidebar";
 import AppNavbar from "../components/AppNavbar";
+import AppFooter from "../components/AppFooter";
 
 /* ─── palette pulled from your design system ─── */
 const ACCENT_BLUE   = "#3B82F6";
@@ -469,6 +470,7 @@ const HealthReport = () => {
         </button>
 
       </div>
+      <AppFooter />
     </div>
   );
 };
