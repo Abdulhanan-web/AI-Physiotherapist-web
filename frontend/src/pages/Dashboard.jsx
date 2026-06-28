@@ -7,6 +7,7 @@ import { specialtyPrograms } from "../data/specialtyPrograms";
 import AppSidebar from "../components/AppSidebar";
 import AppNavbar from "../components/AppNavbar";
 import ExerciseModelCard from "../components/ExerciseModelCard";
+import AppFooter from "../components/AppFooter";
 
 
 const exerciseModels = [
@@ -679,6 +680,7 @@ const Dashboard = () => {
           </div>
         </section>
       </div>
+      <AppFooter />
     </div>
 
   );

@@ -15,7 +15,7 @@ const EXERCISE_RULES = {
   "Shoulder Forward Elevation": { joints: [24, 12, 14], range: { min: 40, max: 160 }, type: "max", holdTime: 2000, targetReps: 10, targetSets: 3, restDuration: 45 },
   "Side Tap Left": { joints: [23, 25, 27], range: { min: 140, max: 175 }, type: "min", targetReps: 15, targetSets: 2, restDuration: 20 },
   "Side Tap Right": { joints: [24, 26, 28], range: { min: 140, max: 175 }, type: "min", targetReps: 15, targetSets: 2, restDuration: 20 },
-  "Cat-Cow Stretch": { joints: [11, 23, 25], range: { min: 70, max: 140 }, type: "max", targetReps: 10, targetSets: 2, restDuration: 30 },
+  "Cat-Cow Stretch": { joints: [20, 1, 0], range: { min: 150, max: 175 }, type: "both", targetReps: 10, targetSets: 2, restDuration: 30 },
   "Knee to Chest Stretch": { joints: [23, 25, 27], range: { min: 40, max: 100 }, type: "min", holdTime: 3000, targetReps: 8, targetSets: 2, restDuration: 30 },
   "Bird Dog": { joints: [11, 23, 25], range: { min: 150, max: 180 }, type: "max", holdTime: 4000, targetReps: 10, targetSets: 2, restDuration: 40 },
   "Glute Bridge": { joints: [11, 23, 25], range: { min: 150, max: 180 }, type: "max", holdTime: 3000, targetReps: 12, targetSets: 3, restDuration: 40 },
