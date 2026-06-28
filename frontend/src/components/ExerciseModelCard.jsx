@@ -37,7 +37,14 @@ function Avatar({ model }) {
   );
 }
 
-export default function ExerciseModelCard({ model, title, onStart, streak }) {
+export default function ExerciseModelCard({
+  model,
+  title,
+  description,
+  steps,
+  onStart,
+  streak,
+}) {
   const s = streak || { count: 0, hasWarning: false, isBroken: false };
 
   return (
@@ -128,7 +135,47 @@ export default function ExerciseModelCard({ model, title, onStart, streak }) {
       >
         {title}
       </h3>
+      <p
+        style={{
+          fontSize: "0.9rem",
+          color: "var(--text-secondary)",
+          lineHeight: 1.5,
+          marginBottom: 12,
+          minHeight: 60,
+        }}
+      >
+        {description}
+      </p>
 
+      {steps && (
+        <>
+          <h4
+            style={{
+              fontSize: "0.8rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "var(--accent)",
+              marginBottom: 8,
+            }}
+          >
+            Quick Steps
+          </h4>
+
+          <ol
+            style={{
+              paddingLeft: 18,
+              marginBottom: 18,
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+              lineHeight: 1.5,
+            }}
+          >
+            {steps.slice(0, 3).map((step, index) => (
+              <li key={index}>{step}</li>
+            ))}
+          </ol>
+        </>
+      )}
       <button
         className="btn btn--primary"
         style={{ width: "100%" }}
