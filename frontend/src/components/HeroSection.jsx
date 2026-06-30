@@ -25,7 +25,7 @@ const HeroSection = ({ exercisesCount, programsCount }) => {
         </div>
 
         <div className="rp-hero-sub">
-          Every recovery journey is unique. RehabPanel uses real-time AI pose
+          Every recovery journey is unique. SpineSense uses real-time AI pose
           detection to guide you through clinically validated exercises.
         </div>
 
